@@ -1,0 +1,42 @@
+number: 0
+slug: example-slug
+title: Example Title
+module: 00_module-name
+category: category-name
+difficulty: beginner
+status: scaffolded
+
+description: >
+  One-sentence explanation of the example.
+
+concepts:
+  - kernel launches
+  - memory movement
+  - validation
+
+prerequisites:
+  - 001_hello-world-kernel
+
+learning_goals:
+  - Understand the data-parallel mapping.
+  - Verify correctness against a CPU baseline.
+
+build:
+  command: "nvcc -std=c++17 -O2 main.cu -o example.exe"
+
+run:
+  command: ".\\example.exe"
+
+expected_output:
+  summary: "Prints PASS when GPU output matches CPU reference."
+
+validation:
+  strategy: cpu_reference
+  tolerance: 1.0e-6
+
+optimization_notes:
+  - Replace the baseline mapping with a grid-stride loop.
+  - Compare memory access patterns.
+
+references:
+  - "Programming Massively Parallel Processors"

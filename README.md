@@ -28,6 +28,14 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
+## Planning Docs
+
+- Curriculum map: [docs/curriculum-map.md](docs/curriculum-map.md)
+- Status tracking: [docs/status.md](docs/status.md)
+- Example conventions: [docs/example-conventions.md](docs/example-conventions.md)
+- Scaffold templates: [templates/](templates)
+- Example generator: [tools/generate_examples.py](tools/generate_examples.py)
+
 ## Featured Study Examples
 
 - Vector Addition: the canonical CUDA starting point for kernel launches, host/device allocation, and memory copies. See `002_vector-addition`.
