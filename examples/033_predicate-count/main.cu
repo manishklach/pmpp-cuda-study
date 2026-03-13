@@ -1,56 +1,68 @@
-// Example 033: Predicate Count
-
-// Track: Parallel Patterns
-// Difficulty: Intermediate
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
-#include <algorithm>
-#include <cmath>
-#include <cfloat>
-#include <climits>
+
 #include <cstdlib>
 #include <iostream>
-#include <limits>
-#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/random_inputs.cuh"
+#include "pmpp/report.cuh"
 
+namespace {
+constexpr const char *kExampleName = "033_predicate-count";
 __global__ void count_positive_kernel(const int *input, int *count, int n) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n && input[idx] > 0)
     atomicAdd(count, 1);
 }
-int main() {
-  const int n = 1024;
-  std::vector<int> input(n);
+}
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+  std::vector<int> input = pmpp::make_uniform_ints(options.size, options.seed, -5, 5);
   int cpu = 0;
-  for (int i = 0; i < n; ++i) {
-    input[i] = (i % 11) - 5;
-    if (input[i] > 0)
+  for (int value : input)
+    if (value > 0)
       ++cpu;
+
+  if (options.check) {
+    int *di = nullptr, *dc = nullptr, gpu = 0;
+    PMPP_CUDA_CHECK(cudaMalloc(&di, options.size * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMalloc(&dc, sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMemcpy(di, input.data(), options.size * sizeof(int), cudaMemcpyHostToDevice));
+    PMPP_CUDA_CHECK(cudaMemset(dc, 0, sizeof(int)));
+    count_positive_kernel<<<(options.size + options.block_size - 1) / options.block_size, options.block_size>>>(di, dc, options.size);
+    PMPP_CUDA_KERNEL_CHECK();
+    PMPP_CUDA_CHECK(cudaMemcpy(&gpu, dc, sizeof(int), cudaMemcpyDeviceToHost));
+    pmpp::ValidationSummary summary = pmpp::compare_scalars(cpu, gpu, 0.0);
+    summary.notes = "Predicate count is the scalar summary version of a filtering predicate.";
+    pmpp::print_validation_report(kExampleName, summary);
+    PMPP_CUDA_CHECK(cudaFree(di));
+    PMPP_CUDA_CHECK(cudaFree(dc));
+    if (!summary.ok)
+      return EXIT_FAILURE;
   }
-  int *di = nullptr, *dc = nullptr;
-  int gpu = 0;
-  CHECK_CUDA(cudaMalloc(&di, n * sizeof(int)));
-  CHECK_CUDA(cudaMalloc(&dc, sizeof(int)));
-  CHECK_CUDA(cudaMemcpy(di, input.data(), n * sizeof(int), cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemset(dc, 0, sizeof(int)));
-  count_positive_kernel<<<(n + 255) / 256, 256>>>(di, dc, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(&gpu, dc, sizeof(int), cudaMemcpyDeviceToHost));
-  std::cout << "Validation: " << (gpu == cpu ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(di));
-  CHECK_CUDA(cudaFree(dc));
-  return gpu == cpu ? EXIT_SUCCESS : EXIT_FAILURE;
+  if (options.bench) {
+    int *di = nullptr, *dc = nullptr;
+    PMPP_CUDA_CHECK(cudaMalloc(&di, options.size * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMalloc(&dc, sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMemcpy(di, input.data(), options.size * sizeof(int), cudaMemcpyHostToDevice));
+    pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+      PMPP_CUDA_CHECK(cudaMemset(dc, 0, sizeof(int)));
+      count_positive_kernel<<<(options.size + options.block_size - 1) / options.block_size, options.block_size>>>(di, dc, options.size);
+      PMPP_CUDA_KERNEL_CHECK();
+    });
+    stats.bandwidth_gbps =
+        pmpp::bandwidth_gbps((static_cast<std::size_t>(options.size) * sizeof(int)) + sizeof(int), stats.avg_ms);
+    stats.throughput = pmpp::elements_per_second(options.size, stats.avg_ms);
+    if (!options.verify)
+      std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters, "Elements/sec");
+    PMPP_CUDA_CHECK(cudaFree(di));
+    PMPP_CUDA_CHECK(cudaFree(dc));
+  }
+  return EXIT_SUCCESS;
 }

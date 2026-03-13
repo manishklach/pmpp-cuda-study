@@ -1,0 +1,11 @@
+number: 22
+slug: l2-norm
+title: L2 Norm
+module: parallel-patterns
+category: reductions
+difficulty: intermediate
+status: verified
+maturity_level: 4
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-3

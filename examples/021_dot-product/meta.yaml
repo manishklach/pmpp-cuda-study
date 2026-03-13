@@ -1,0 +1,11 @@
+number: 21
+slug: dot-product
+title: Dot Product
+module: parallel-patterns
+category: reductions
+difficulty: intermediate
+status: verified
+maturity_level: 4
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-3

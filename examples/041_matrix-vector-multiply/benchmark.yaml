@@ -1,0 +1,5 @@
+default:
+  size: 1024
+  warmup: 5
+  iters: 20
+  block_size: 256

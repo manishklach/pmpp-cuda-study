@@ -2,37 +2,20 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Predicate Count**.
-
-## PMPP Ideas To Focus On
-
-- boolean predicates
-- atomic counts
-- selectivity
+Count how many integers satisfy a positive-value predicate on the GPU.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 65536 --block-size 256
 ```
-
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
-
-## What To Modify Next
-
-- Count positives, evens, or range matches.
-- Compare atomic count with reduction-based counting.

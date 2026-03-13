@@ -1,63 +1,78 @@
-// Example 032: Scatter
-
-// Track: Parallel Patterns
-// Difficulty: Intermediate
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
-#include <algorithm>
-#include <cmath>
-#include <cfloat>
-#include <climits>
+
 #include <cstdlib>
 #include <iostream>
-#include <limits>
-#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/random_inputs.cuh"
+#include "pmpp/report.cuh"
 
+namespace {
+constexpr const char *kExampleName = "032_scatter";
 __global__ void scatter_kernel(const float *input, const int *destinations, float *output, int n) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n)
     output[destinations[idx]] = input[idx];
 }
-int main() {
-  const int n = 32;
-  std::vector<float> input(n), gpu(n, -1.0f), cpu(n, -1.0f);
-  std::vector<int> dst(n);
-  for (int i = 0; i < n; ++i) {
-    input[i] = 100.0f + i;
-    dst[i] = (i * 5) % n;
-    cpu[dst[i]] = input[i];
-  }
-  float *di = nullptr, *do_ = nullptr;
-  int *dd = nullptr;
-  CHECK_CUDA(cudaMalloc(&di, n * sizeof(float)));
-  CHECK_CUDA(cudaMalloc(&do_, n * sizeof(float)));
-  CHECK_CUDA(cudaMalloc(&dd, n * sizeof(int)));
-  CHECK_CUDA(cudaMemcpy(di, input.data(), n * sizeof(float), cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(dd, dst.data(), n * sizeof(int), cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemset(do_, 0, n * sizeof(float)));
-  scatter_kernel<<<1, 128>>>(di, dd, do_, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(gpu.data(), do_, n * sizeof(float), cudaMemcpyDeviceToHost));
-  bool ok = true;
+}
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+  int n = options.size;
+  std::vector<float> input = pmpp::make_uniform_floats(n, options.seed, -5.0f, 5.0f);
+  std::vector<int> destinations(n, 0);
   for (int i = 0; i < n; ++i)
-    if (std::fabs(gpu[i] - cpu[i]) > 1e-5f)
-      ok = false;
-  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(di));
-  CHECK_CUDA(cudaFree(do_));
-  CHECK_CUDA(cudaFree(dd));
-  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
+    destinations[i] = (i * 5) % n;
+  std::vector<float> cpu(n, 0.0f), gpu(n, 0.0f);
+  for (int i = 0; i < n; ++i)
+    cpu[destinations[i]] = input[i];
+
+  if (options.check) {
+    float *di = nullptr, *dout = nullptr;
+    int *dd = nullptr;
+    PMPP_CUDA_CHECK(cudaMalloc(&di, n * sizeof(float)));
+    PMPP_CUDA_CHECK(cudaMalloc(&dout, n * sizeof(float)));
+    PMPP_CUDA_CHECK(cudaMalloc(&dd, n * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMemcpy(di, input.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+    PMPP_CUDA_CHECK(cudaMemcpy(dd, destinations.data(), n * sizeof(int), cudaMemcpyHostToDevice));
+    PMPP_CUDA_CHECK(cudaMemset(dout, 0, n * sizeof(float)));
+    scatter_kernel<<<(n + options.block_size - 1) / options.block_size, options.block_size>>>(di, dd, dout, n);
+    PMPP_CUDA_KERNEL_CHECK();
+    PMPP_CUDA_CHECK(cudaMemcpy(gpu.data(), dout, n * sizeof(float), cudaMemcpyDeviceToHost));
+    pmpp::ValidationSummary summary = pmpp::compare_vectors(cpu, gpu, 1.0e-5f);
+    summary.notes = "Scatter writes to irregular destinations; this example keeps destinations unique.";
+    pmpp::print_validation_report(kExampleName, summary);
+    PMPP_CUDA_CHECK(cudaFree(di));
+    PMPP_CUDA_CHECK(cudaFree(dd));
+    PMPP_CUDA_CHECK(cudaFree(dout));
+    if (!summary.ok)
+      return EXIT_FAILURE;
+  }
+  if (options.bench) {
+    float *di = nullptr, *dout = nullptr;
+    int *dd = nullptr;
+    PMPP_CUDA_CHECK(cudaMalloc(&di, n * sizeof(float)));
+    PMPP_CUDA_CHECK(cudaMalloc(&dout, n * sizeof(float)));
+    PMPP_CUDA_CHECK(cudaMalloc(&dd, n * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMemcpy(di, input.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+    PMPP_CUDA_CHECK(cudaMemcpy(dd, destinations.data(), n * sizeof(int), cudaMemcpyHostToDevice));
+    pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+      PMPP_CUDA_CHECK(cudaMemset(dout, 0, n * sizeof(float)));
+      scatter_kernel<<<(n + options.block_size - 1) / options.block_size, options.block_size>>>(di, dd, dout, n);
+      PMPP_CUDA_KERNEL_CHECK();
+    });
+    stats.bandwidth_gbps = pmpp::bandwidth_gbps((3ULL * n) * sizeof(float), stats.avg_ms);
+    stats.throughput = pmpp::elements_per_second(n, stats.avg_ms);
+    if (!options.verify)
+      std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters, "Elements/sec");
+    PMPP_CUDA_CHECK(cudaFree(di));
+    PMPP_CUDA_CHECK(cudaFree(dd));
+    PMPP_CUDA_CHECK(cudaFree(dout));
+  }
+  return EXIT_SUCCESS;
 }

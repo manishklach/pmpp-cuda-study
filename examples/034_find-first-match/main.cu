@@ -1,54 +1,71 @@
-// Example 034: Find First Match
-
-// Track: Parallel Patterns
-// Difficulty: Intermediate
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
+
 #include <algorithm>
-#include <cmath>
-#include <cfloat>
-#include <climits>
 #include <cstdlib>
 #include <iostream>
-#include <limits>
-#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/random_inputs.cuh"
+#include "pmpp/report.cuh"
 
+namespace {
+constexpr const char *kExampleName = "034_find-first-match";
 __global__ void find_first_kernel(const int *input, int target, int *first_index, int n) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n && input[idx] == target)
     atomicMin(first_index, idx);
 }
-int main() {
-  const int n = 512;
+}
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
   const int target = 42;
-  std::vector<int> input(n);
-  std::fill(input.begin(), input.end(), 7);
-  input[137] = target;
-  input[299] = target;
-  int cpu = 137, gpu = n;
-  int *di = nullptr, *df = nullptr;
-  CHECK_CUDA(cudaMalloc(&di, n * sizeof(int)));
-  CHECK_CUDA(cudaMalloc(&df, sizeof(int)));
-  CHECK_CUDA(cudaMemcpy(di, input.data(), n * sizeof(int), cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(df, &gpu, sizeof(int), cudaMemcpyHostToDevice));
-  find_first_kernel<<<(n + 255) / 256, 256>>>(di, target, df, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(&gpu, df, sizeof(int), cudaMemcpyDeviceToHost));
-  std::cout << "Validation: " << (gpu == cpu ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(di));
-  CHECK_CUDA(cudaFree(df));
-  return gpu == cpu ? EXIT_SUCCESS : EXIT_FAILURE;
+  std::vector<int> input(options.size, 7);
+  if (options.size > 5) {
+    input[options.size / 3] = target;
+    input[(options.size * 2) / 3] = target;
+  }
+  int cpu = static_cast<int>(std::find(input.begin(), input.end(), target) - input.begin());
+
+  if (options.check) {
+    int *di = nullptr, *df = nullptr, gpu = options.size;
+    PMPP_CUDA_CHECK(cudaMalloc(&di, options.size * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMalloc(&df, sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMemcpy(di, input.data(), options.size * sizeof(int), cudaMemcpyHostToDevice));
+    PMPP_CUDA_CHECK(cudaMemcpy(df, &gpu, sizeof(int), cudaMemcpyHostToDevice));
+    find_first_kernel<<<(options.size + options.block_size - 1) / options.block_size, options.block_size>>>(di, target, df, options.size);
+    PMPP_CUDA_KERNEL_CHECK();
+    PMPP_CUDA_CHECK(cudaMemcpy(&gpu, df, sizeof(int), cudaMemcpyDeviceToHost));
+    pmpp::ValidationSummary summary = pmpp::compare_scalars(cpu, gpu, 0.0);
+    summary.notes = "Atomic min collapses multiple matching threads down to the earliest index.";
+    pmpp::print_validation_report(kExampleName, summary);
+    PMPP_CUDA_CHECK(cudaFree(di));
+    PMPP_CUDA_CHECK(cudaFree(df));
+    if (!summary.ok)
+      return EXIT_FAILURE;
+  }
+  if (options.bench) {
+    int *di = nullptr, *df = nullptr, init = options.size;
+    PMPP_CUDA_CHECK(cudaMalloc(&di, options.size * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMalloc(&df, sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMemcpy(di, input.data(), options.size * sizeof(int), cudaMemcpyHostToDevice));
+    pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+      PMPP_CUDA_CHECK(cudaMemcpy(df, &init, sizeof(int), cudaMemcpyHostToDevice));
+      find_first_kernel<<<(options.size + options.block_size - 1) / options.block_size, options.block_size>>>(di, target, df, options.size);
+      PMPP_CUDA_KERNEL_CHECK();
+    });
+    stats.bandwidth_gbps =
+        pmpp::bandwidth_gbps((static_cast<std::size_t>(options.size) * sizeof(int)) + sizeof(int), stats.avg_ms);
+    stats.throughput = pmpp::elements_per_second(options.size, stats.avg_ms);
+    if (!options.verify)
+      std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters, "Elements/sec");
+    PMPP_CUDA_CHECK(cudaFree(di));
+    PMPP_CUDA_CHECK(cudaFree(df));
+  }
+  return EXIT_SUCCESS;
 }

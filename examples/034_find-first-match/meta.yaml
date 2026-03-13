@@ -1,0 +1,11 @@
+number: 34
+slug: find-first-match
+title: Find First Match
+module: parallel-patterns
+category: irregular
+difficulty: intermediate
+status: verified
+maturity_level: 4
+validation:
+  type: cpu_reference
+  tolerance: 0
