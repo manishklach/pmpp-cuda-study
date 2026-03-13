@@ -5,10 +5,20 @@ A structured CUDA study repository with **100 examples** ordered from simple ker
 ## Included
 
 - 100 numbered example folders with CUDA study material
-- Real CUDA implementations for examples `001-020`
+- Reference-friendly CUDA implementations for most examples across `001-100`
 - Per-example study notes and implementation checklists
 - A 5-batch GitHub publishing plan for `001-020` through `081-100`
-- A scaffold generator script for the remaining template-heavy examples
+- Helper scripts used during batch implementation work
+
+## Implementation Status
+
+- Fully implemented / reference-friendly: `96` examples
+  These have runnable CUDA study code plus example-specific documentation.
+- Guided templates: `4` examples
+  These are `057_lu-factorization-sketch`, `058_cholesky-factorization`, `059_qr-factorization-sketch`, and `060_fft-based-convolution`.
+  They are intentionally more scaffold-like because they overlap with library-heavy or numerically dense topics where a small study version is clearer than pretending to be production-ready.
+- Study-only: none currently labeled this way
+  If this category is introduced later, it should mean conceptual examples that explain the workflow but are not intended as full implementations.
 
 ## Quick Start
 
@@ -24,6 +34,32 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 - Matrix Multiplication: a foundational optimization example for thread mapping, tiling, memory reuse, and shared memory. See `042_naive-matrix-multiply` and `043_tiled-matrix-multiply`.
 - Image Processing: useful for learning 2D grids and pixel mapping strategies. See `012_rgb-to-grayscale`, `049_gaussian-blur`, `061_image-resize-nearest-neighbor`, and `062_image-resize-bilinear`.
 - Parallel Reduction: core PMPP material for collapsing large datasets into one answer while studying divergence and shared-memory optimization. See `023_sum-reduction`, `024_max-reduction`, and `025_min-reduction`.
+
+## Recommended Core Path
+
+If you want the shortest high-value CUDA study sequence in this repo, start with these:
+
+1. `002_vector-addition`
+   Learn the host/device programming loop: `cudaMalloc`, `cudaMemcpy`, kernel launch, and validation.
+2. `042_naive-matrix-multiply`
+   Learn output mapping and baseline global-memory behavior before optimization.
+3. `043_tiled-matrix-multiply`
+   Learn tiling, shared memory, synchronization, and data reuse.
+4. `012_rgb-to-grayscale`
+   Learn 2D thread mapping for image data.
+5. `049_gaussian-blur`
+   Learn neighborhood access patterns and weighted image filtering.
+6. `023_sum-reduction`
+   Learn cooperative parallel reduction to a single result.
+7. `024_max-reduction` and `025_min-reduction`
+   Reinforce the same pattern with different operators and validation goals.
+
+## Why These Matter
+
+- Vector Addition is the CUDA "hello world" because it teaches the full programming workflow with minimal algorithmic noise.
+- Matrix Multiplication is the classic optimization example because it naturally introduces mapping, bandwidth, tiling, and shared memory.
+- Image Processing examples make multidimensional grids and pixel indexing concrete.
+- Parallel Reduction is one of the most important PMPP patterns because it teaches hierarchical cooperation, synchronization, and performance-sensitive control flow.
 
 ## Example Index
 
