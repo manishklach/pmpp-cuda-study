@@ -1,28 +1,19 @@
-// Example 042: Naive Matrix Multiply
-// Difficulty: Intermediate
-
-// Track: Linear Algebra
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
-#include <algorithm>
-#include <cmath>
-#include <cfloat>
-#include <climits>
+
 #include <cstdlib>
 #include <iostream>
-#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                       \
-  do {                                                                                         \
-    cudaError_t status__ = (call);                                                             \
-    if (status__ != cudaSuccess) {                                                             \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":" \
-                << __LINE__ << std::endl;                                                      \
-      std::exit(EXIT_FAILURE);                                                                 \
-    }                                                                                          \
-  } while (0)
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/random_inputs.cuh"
+#include "pmpp/report.cuh"
+
+namespace {
+
+constexpr const char *kExampleName = "042_naive-matrix-multiply";
 
 __global__ void matmul_naive_kernel(const float *a, const float *b, float *c, int m, int n, int k) {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -34,35 +25,98 @@ __global__ void matmul_naive_kernel(const float *a, const float *b, float *c, in
     c[row * n + col] = sum;
   }
 }
-int main() {
-  const int m = 8, n = 8, k = 8;
-  std::vector<float> a(m * k), b(k * n), gpu(m * n, 0.0f), cpu(m * n, 0.0f);
-  for (int i = 0; i < m * k; ++i)
-    a[i] = (i % 5) + 1;
-  for (int i = 0; i < k * n; ++i)
-    b[i] = (i % 7) + 1;
-  for (int r = 0; r < m; ++r)
-    for (int c = 0; c < n; ++c)
-      for (int e = 0; e < k; ++e)
-        cpu[r * n + c] += a[r * k + e] * b[e * n + c];
-  float *da = nullptr, *db = nullptr, *dc = nullptr;
-  CHECK_CUDA(cudaMalloc(&da, a.size() * sizeof(float)));
-  CHECK_CUDA(cudaMalloc(&db, b.size() * sizeof(float)));
-  CHECK_CUDA(cudaMalloc(&dc, gpu.size() * sizeof(float)));
-  CHECK_CUDA(cudaMemcpy(da, a.data(), a.size() * sizeof(float), cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(db, b.data(), b.size() * sizeof(float), cudaMemcpyHostToDevice));
-  dim3 t(16, 16), bl((n + t.x - 1) / t.x, (m + t.y - 1) / t.y);
-  matmul_naive_kernel<<<bl, t>>>(da, db, dc, m, n, k);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(gpu.data(), dc, gpu.size() * sizeof(float), cudaMemcpyDeviceToHost));
-  bool ok = true;
-  for (int i = 0; i < m * n; ++i)
-    if (std::fabs(gpu[i] - cpu[i]) > 1e-5f)
-      ok = false;
-  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(da));
-  CHECK_CUDA(cudaFree(db));
-  CHECK_CUDA(cudaFree(dc));
-  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
+
+std::vector<float> cpu_reference(const std::vector<float> &a, const std::vector<float> &b, int size) {
+  std::vector<float> c(size * size, 0.0f);
+  for (int row = 0; row < size; ++row)
+    for (int col = 0; col < size; ++col)
+      for (int e = 0; e < size; ++e)
+        c[row * size + col] += a[row * size + e] * b[e * size + col];
+  return c;
+}
+
+pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
+  const int size = options.size;
+  const std::size_t matrix_bytes = static_cast<std::size_t>(size) * size * sizeof(float);
+  std::vector<float> a = pmpp::make_uniform_floats(size * size, options.seed, -2.0f, 2.0f);
+  std::vector<float> b = pmpp::make_uniform_floats(size * size, options.seed + 1, -2.0f, 2.0f);
+  std::vector<float> gpu(size * size, 0.0f);
+  std::vector<float> cpu = cpu_reference(a, b, size);
+
+  float *device_a = nullptr;
+  float *device_b = nullptr;
+  float *device_c = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_a, matrix_bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_b, matrix_bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_c, matrix_bytes));
+
+  PMPP_CUDA_CHECK(cudaMemcpy(device_a, a.data(), matrix_bytes, cudaMemcpyHostToDevice));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_b, b.data(), matrix_bytes, cudaMemcpyHostToDevice));
+
+  dim3 threads(16, 16);
+  dim3 blocks((size + threads.x - 1) / threads.x, (size + threads.y - 1) / threads.y);
+  matmul_naive_kernel<<<blocks, threads>>>(device_a, device_b, device_c, size, size, size);
+  PMPP_CUDA_KERNEL_CHECK();
+
+  PMPP_CUDA_CHECK(cudaMemcpy(gpu.data(), device_c, matrix_bytes, cudaMemcpyDeviceToHost));
+  PMPP_CUDA_CHECK(cudaFree(device_a));
+  PMPP_CUDA_CHECK(cudaFree(device_b));
+  PMPP_CUDA_CHECK(cudaFree(device_c));
+
+  pmpp::ValidationSummary summary = pmpp::compare_vectors(cpu, gpu, 1.0e-4f);
+  summary.notes = "This baseline matmul favors clarity over performance and rereads global memory heavily.";
+  return summary;
+}
+
+pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
+  const int size = options.size;
+  const std::size_t matrix_bytes = static_cast<std::size_t>(size) * size * sizeof(float);
+  std::vector<float> a = pmpp::make_uniform_floats(size * size, options.seed, -2.0f, 2.0f);
+  std::vector<float> b = pmpp::make_uniform_floats(size * size, options.seed + 1, -2.0f, 2.0f);
+
+  float *device_a = nullptr;
+  float *device_b = nullptr;
+  float *device_c = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_a, matrix_bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_b, matrix_bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_c, matrix_bytes));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_a, a.data(), matrix_bytes, cudaMemcpyHostToDevice));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_b, b.data(), matrix_bytes, cudaMemcpyHostToDevice));
+
+  dim3 threads(16, 16);
+  dim3 blocks((size + threads.x - 1) / threads.x, (size + threads.y - 1) / threads.y);
+  pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+    matmul_naive_kernel<<<blocks, threads>>>(device_a, device_b, device_c, size, size, size);
+    PMPP_CUDA_KERNEL_CHECK();
+  });
+  stats.bandwidth_gbps = pmpp::bandwidth_gbps(matrix_bytes * 3, stats.avg_ms);
+  stats.throughput = pmpp::elements_per_second(static_cast<std::size_t>(size) * size, stats.avg_ms);
+
+  PMPP_CUDA_CHECK(cudaFree(device_a));
+  PMPP_CUDA_CHECK(cudaFree(device_b));
+  PMPP_CUDA_CHECK(cudaFree(device_c));
+  return stats;
+}
+
+}  // namespace
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+
+  if (options.check) {
+    pmpp::ValidationSummary summary = run_check(options);
+    pmpp::print_validation_report(kExampleName, summary);
+    if (!summary.ok)
+      return EXIT_FAILURE;
+  }
+
+  if (options.bench) {
+    if (!options.verify)
+      std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::BenchmarkStats stats = run_bench(options);
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters,
+                                 "Output elements/sec");
+  }
+
+  return EXIT_SUCCESS;
 }

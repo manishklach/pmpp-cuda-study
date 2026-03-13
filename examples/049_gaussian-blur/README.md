@@ -2,52 +2,66 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `041-060`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Gaussian Blur**.
+Apply a 3x3 Gaussian blur to a square grayscale image on the GPU and validate the result against a CPU reference.
 
-This is one of the key image-processing examples in the repo. It helps illustrate 2D thread mapping, neighborhood access, and weighted image filtering.
+## Why This Example Matters
 
-## PMPP Ideas To Focus On
+This is a compact image-processing kernel that makes 2D grids, neighborhood access, and border handling concrete. It is a strong bridge between basic image kernels and more advanced stencil-style workloads.
 
-- weighted smoothing
-- normalized kernels
-- image denoising
+## CUDA Concepts Taught
 
-## What You Should Learn Here
+- 2D thread mapping
+- stencil-style neighborhood access
+- shared constant-like kernel staging
+- border clamping
 
-- How each output pixel depends on a neighborhood of input pixels
-- Why blur kernels are a good bridge from simple pixel transforms to stencil-style computation
-- How this differs from `012_rgb-to-grayscale` even though both use image-shaped data
+## Prerequisites
 
-## Study Prompts
-
-- Identify the neighborhood each thread reads for one blurred pixel.
-- Explain why border handling matters in blur kernels.
-- Compare this direct blur against a separable version elsewhere in the repo.
+- `012_rgb-to-grayscale`
+- `043_tiled-matrix-multiply`
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 64
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 256 --warmup 5 --iters 20
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
-- Start with the included tiny matrices before scaling up.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when GPU output matches the CPU blur within tolerance.
+- Benchmark mode prints runtime and pixel throughput.
 
-- Increase the radius.
-- Compare separable and direct blur variants.
-- Try caching neighborhoods with shared memory.
+## Correctness Notes
+
+- The image is generated deterministically from a fixed seed.
+- Boundary handling uses clamped coordinates on both CPU and GPU.
+
+## Benchmark Notes
+
+- This is a useful first benchmark for neighborhood-based image kernels.
+
+## Likely Bottlenecks
+
+- redundant neighborhood loads from global memory
+- memory access locality near tile boundaries
+
+## Next Optimization Steps
+
+- move the blur weights to constant memory
+- tile the input image with halos in shared memory
+- compare direct blur with a separable implementation

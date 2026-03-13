@@ -1,0 +1,38 @@
+number: 23
+slug: sum-reduction
+title: Sum Reduction
+module: parallel-patterns
+category: reductions
+difficulty: intermediate
+status: fully_mature
+maturity_level: 6
+
+description: >
+  Reduce a large array to one sum using shared-memory block reductions, CPU reference
+  validation, and benchmark mode.
+
+concepts:
+  - shared memory
+  - block-level cooperation
+  - synchronization
+  - hierarchical reduction
+
+prerequisites:
+  - 002_vector-addition
+  - 007_saxpy
+
+learning_goals:
+  - Understand staged parallel reduction.
+  - Compare a shared-memory reduction against a scalar CPU accumulation.
+  - Benchmark a classic PMPP building block.
+
+build:
+  command: "nvcc -std=c++17 -O2 -I..\\..\\include main.cu -o example.exe"
+
+run:
+  check: ".\\example.exe --check --size 65536 --block-size 256"
+  bench: ".\\example.exe --bench --size 1048576 --warmup 5 --iters 20 --block-size 256"
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-3

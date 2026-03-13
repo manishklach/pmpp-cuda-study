@@ -1,0 +1,25 @@
+number: 80
+slug: n-body-tiled
+title: N Body Tiled
+module: simulation
+category: n-body
+difficulty: advanced
+status: verified
+maturity_level: 4
+
+description: >
+  Compute tiled all-pairs N-body accelerations with CPU validation and benchmark mode.
+
+concepts:
+  - shared-memory tiling
+  - all-pairs interactions
+  - simulation kernels
+  - numerical tolerance checks
+
+prerequisites:
+  - 023_sum-reduction
+  - 043_tiled-matrix-multiply
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-3

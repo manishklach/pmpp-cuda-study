@@ -2,52 +2,70 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `✅ fully mature`
+- Maturity: `Level 6 - polished teaching example`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Sum Reduction**.
+Reduce a large float array to one sum using a shared-memory block reduction on the GPU and validate the result against a CPU reference.
 
-This is a core PMPP example for parallel computation of a single result from a large dataset. It is the best starting point for understanding reduction patterns.
+## Why This Example Matters
 
-## PMPP Ideas To Focus On
+Reduction is one of the most important PMPP patterns. It teaches how many threads cooperate to produce one answer, and it sets up later work on scan, histogramming, norms, and softmax-like kernels.
+
+## CUDA Concepts Taught
 
 - shared-memory reduction
 - block partials
-- final host aggregation
+- synchronization
+- staged aggregation
+- benchmark mode for collective kernels
 
-## What You Should Learn Here
+## Prerequisites
 
-- How many threads cooperate to compute one answer
-- Why reductions are structured in stages instead of one giant atomic update
-- Where control divergence and synchronization can affect performance
-
-## Study Prompts
-
-- Identify where per-thread inputs become block-level partial sums.
-- Explain why the active thread count shrinks each reduction round.
-- Compare the structure here with `024_max-reduction` and `025_min-reduction`.
+- `002_vector-addition`
+- `007_saxpy`
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 65536 --block-size 256
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 1048576 --warmup 5 --iters 20 --block-size 256
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when the GPU result matches the CPU sum within tolerance.
+- Benchmark mode prints timing and element throughput.
 
-- Measure different block sizes.
-- Add a second GPU reduction pass.
-- Try warp-level primitives after understanding the shared-memory version.
+## Correctness Notes
+
+- Inputs are deterministic.
+- The GPU computes block partials on device, then the host accumulates those partials for the final result.
+- Validation uses a scalar CPU reference sum.
+
+## Benchmark Notes
+
+- This version times the GPU partial-reduction pass.
+- The final host accumulation is intentionally kept simple so the reduction structure is easy to inspect.
+
+## Likely Bottlenecks
+
+- shared-memory synchronization
+- underutilization at small sizes
+- extra host work for the final aggregation step
+
+## Next Optimization Steps
+
+- add a second GPU reduction pass
+- compare against a warp-shuffle reduction
+- measure different block sizes and occupancy tradeoffs

@@ -1,0 +1,26 @@
+number: 43
+slug: tiled-matrix-multiply
+title: Tiled Matrix Multiply
+module: linear-algebra
+category: dense-matrix
+difficulty: intermediate
+status: fully_mature
+maturity_level: 6
+
+description: >
+  Multiply two dense square matrices using shared-memory tiling and validate against
+  a CPU reference.
+
+concepts:
+  - shared memory
+  - tiling
+  - synchronization
+  - 2d thread mapping
+  - data reuse
+
+prerequisites:
+  - 042_naive-matrix-multiply
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-4

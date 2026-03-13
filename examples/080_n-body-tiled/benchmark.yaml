@@ -1,0 +1,4 @@
+default:
+  size: 1024
+  warmup: 3
+  iters: 10

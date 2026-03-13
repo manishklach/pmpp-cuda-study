@@ -1,0 +1,37 @@
+number: 7
+slug: saxpy
+title: SAXPY
+module: foundations
+category: vector-ops
+difficulty: beginner
+status: fully_mature
+maturity_level: 5
+
+description: >
+  Compute a*x + y with deterministic inputs, CPU reference validation, and a shared
+  benchmark interface.
+
+concepts:
+  - fused multiply add pattern
+  - host-device copies
+  - validation
+  - throughput reporting
+
+prerequisites:
+  - 002_vector-addition
+
+learning_goals:
+  - Understand a simple BLAS-style kernel.
+  - Compare arithmetic work with a still memory-heavy access pattern.
+  - Reuse the common repo check and bench harness.
+
+build:
+  command: "nvcc -std=c++17 -O2 -I..\\..\\include main.cu -o example.exe"
+
+run:
+  check: ".\\example.exe --check --size 8192"
+  bench: ".\\example.exe --bench --size 1048576 --warmup 5 --iters 20"
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-5

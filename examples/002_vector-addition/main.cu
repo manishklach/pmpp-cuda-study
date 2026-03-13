@@ -1,56 +1,120 @@
-// Example 002: Vector Addition
-// Track: Foundations
-// Difficulty: Beginner
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
-#include <cmath>
+
 #include <cstdlib>
 #include <iostream>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
-__global__ void kernel(const float *a, const float *b, float *out, int n) {
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/random_inputs.cuh"
+#include "pmpp/report.cuh"
+
+namespace {
+
+constexpr const char *kExampleName = "002_vector-addition";
+
+__global__ void vector_add_kernel(const float *a, const float *b, float *out, int n) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n)
     out[idx] = a[idx] + b[idx];
 }
-int main() {
-  const int n = 1 << 12;
-  size_t bytes = (size_t)n * sizeof(float);
-  std::vector<float> a(n), b(n), go(n, 0.0f), co(n, 0.0f);
-  for (int i = 0; i < n; ++i) {
-    float lhs = ((i % 29) - 14) * 0.25f;
-    float rhs = ((i % 13) - 6) * 0.5f;
-    a[i] = lhs;
-    b[i] = rhs;
-    co[i] = lhs + rhs;
+
+std::vector<float> cpu_reference(const std::vector<float> &a, const std::vector<float> &b) {
+  std::vector<float> output(a.size(), 0.0f);
+  for (std::size_t i = 0; i < a.size(); ++i)
+    output[i] = a[i] + b[i];
+  return output;
+}
+
+pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
+  const int n = options.size;
+  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
+
+  std::vector<float> a = pmpp::make_uniform_floats(n, options.seed, -4.0f, 4.0f);
+  std::vector<float> b = pmpp::make_uniform_floats(n, options.seed + 1, -3.0f, 3.0f);
+  std::vector<float> gpu_output(n, 0.0f);
+  std::vector<float> cpu_output = cpu_reference(a, b);
+
+  float *device_a = nullptr;
+  float *device_b = nullptr;
+  float *device_out = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_a, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_b, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_out, bytes));
+
+  PMPP_CUDA_CHECK(cudaMemcpy(device_a, a.data(), bytes, cudaMemcpyHostToDevice));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_b, b.data(), bytes, cudaMemcpyHostToDevice));
+
+  const int threads = options.block_size;
+  const int blocks = (n + threads - 1) / threads;
+  vector_add_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+  PMPP_CUDA_KERNEL_CHECK();
+
+  PMPP_CUDA_CHECK(cudaMemcpy(gpu_output.data(), device_out, bytes, cudaMemcpyDeviceToHost));
+
+  PMPP_CUDA_CHECK(cudaFree(device_a));
+  PMPP_CUDA_CHECK(cudaFree(device_b));
+  PMPP_CUDA_CHECK(cudaFree(device_out));
+
+  pmpp::ValidationSummary summary = pmpp::compare_vectors(cpu_output, gpu_output, 1.0e-5f);
+  summary.notes = "CPU reference compares elementwise sums for deterministic random inputs.";
+  return summary;
+}
+
+pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
+  const int n = options.size;
+  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
+
+  std::vector<float> a = pmpp::make_uniform_floats(n, options.seed, -4.0f, 4.0f);
+  std::vector<float> b = pmpp::make_uniform_floats(n, options.seed + 1, -3.0f, 3.0f);
+
+  float *device_a = nullptr;
+  float *device_b = nullptr;
+  float *device_out = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_a, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_b, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_out, bytes));
+
+  PMPP_CUDA_CHECK(cudaMemcpy(device_a, a.data(), bytes, cudaMemcpyHostToDevice));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_b, b.data(), bytes, cudaMemcpyHostToDevice));
+
+  const int threads = options.block_size;
+  const int blocks = (n + threads - 1) / threads;
+
+  pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+    vector_add_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+    PMPP_CUDA_KERNEL_CHECK();
+  });
+  stats.bandwidth_gbps = pmpp::bandwidth_gbps(bytes * 3, stats.avg_ms);
+  stats.throughput = pmpp::elements_per_second(n, stats.avg_ms);
+
+  PMPP_CUDA_CHECK(cudaFree(device_a));
+  PMPP_CUDA_CHECK(cudaFree(device_b));
+  PMPP_CUDA_CHECK(cudaFree(device_out));
+  return stats;
+}
+
+}  // namespace
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+
+  if (options.check) {
+    pmpp::ValidationSummary summary = run_check(options);
+    pmpp::print_validation_report(kExampleName, summary);
+    if (!summary.ok)
+      return EXIT_FAILURE;
   }
-  float *da = nullptr, *db = nullptr, *do_ = nullptr;
-  CHECK_CUDA(cudaMalloc(&da, bytes));
-  CHECK_CUDA(cudaMalloc(&db, bytes));
-  CHECK_CUDA(cudaMalloc(&do_, bytes));
-  CHECK_CUDA(cudaMemcpy(da, a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(db, b.data(), bytes, cudaMemcpyHostToDevice));
-  kernel<<<(n + 255) / 256, 256>>>(da, db, do_, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(go.data(), do_, bytes, cudaMemcpyDeviceToHost));
-  int mm = 0;
-  for (int i = 0; i < n; ++i)
-    if (fabs(go[i] - co[i]) > 1.0e-5f)
-      ++mm;
-  std::cout << "Validation: " << (mm == 0 ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(da));
-  CHECK_CUDA(cudaFree(db));
-  CHECK_CUDA(cudaFree(do_));
-  return mm == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+
+  if (options.bench) {
+    if (!options.verify)
+      std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::BenchmarkStats stats = run_bench(options);
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters,
+                                 "Elements/sec");
+  }
+
+  return EXIT_SUCCESS;
 }

@@ -1,0 +1,50 @@
+number: 2
+slug: vector-addition
+title: Vector Addition
+module: foundations
+category: vector-ops
+difficulty: beginner
+status: fully_mature
+maturity_level: 6
+
+description: >
+  Add two vectors elementwise with deterministic inputs, CPU reference validation,
+  and standard check and benchmark modes.
+
+concepts:
+  - kernel launch
+  - global memory
+  - host-device copies
+  - validation
+  - benchmarking
+
+prerequisites:
+  - 001_hello-world-kernel
+
+learning_goals:
+  - Understand the full CUDA host/device workflow.
+  - Validate GPU output against a CPU reference.
+  - Measure effective throughput for a memory-bound kernel.
+
+build:
+  command: "nvcc -std=c++17 -O2 -I..\\..\\include main.cu -o example.exe"
+
+run:
+  check: ".\\example.exe --check --size 4096"
+  bench: ".\\example.exe --bench --size 1048576 --warmup 5 --iters 20"
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-5
+
+benchmark:
+  supports: true
+  metrics:
+    - avg_ms
+    - min_ms
+    - max_ms
+    - effective_gbps
+    - elements_per_second
+
+references:
+  - Programming Massively Parallel Processors

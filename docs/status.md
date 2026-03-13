@@ -4,10 +4,14 @@ Use this file as the source of truth for repo implementation status.
 
 ## Status Legend
 
-- `✅ implemented` — working CUDA code with validation and example-specific documentation
-- `🟡 scaffolded` — structured starter code and docs exist, but implementation is incomplete
+- `✅ fully mature` — validated, benchmarkable, documentation-rich example
+- `🧪 verified` — validated example with clear PASS / FAIL behavior
+- `⚙️ compiles` — builds, but validation maturity is still limited
+- `🟡 scaffolded` — starter code and docs exist, but the example is not yet trusted
 - `📝 notes only` — conceptual planning exists, but code is not added yet
 - `🚧 in progress` — currently being implemented or revised
+
+See [docs/maturity-model.md](maturity-model.md) for the repo-wide maturity ladder.
 
 ## Current High-Level Status
 
@@ -41,5 +45,17 @@ Use this file as the source of truth for repo implementation status.
 
 1. Update module counts when a batch lands.
 2. Update the per-example table for any example that changes status.
-3. Keep status honest: scaffolding is valuable, but it should not be labeled implemented.
+3. Keep status honest: scaffolding is valuable, but it should not be labeled mature.
 4. Add links to reports or benchmark summaries in the `Notes` column where useful.
+
+## Current Trusted Core
+
+The strongest current maturity path is:
+
+- `002_vector-addition`
+- `007_saxpy`
+- `023_sum-reduction`
+- `042_naive-matrix-multiply`
+- `043_tiled-matrix-multiply`
+- `049_gaussian-blur`
+- `080_n-body-tiled`

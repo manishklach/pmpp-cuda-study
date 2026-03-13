@@ -2,52 +2,66 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `041-060`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable baseline`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Naive Matrix Multiply**.
+Multiply two dense square matrices with a straightforward CUDA kernel and verify the result against a CPU reference.
 
-This is the baseline matrix multiplication example. It is intentionally simple so you can understand thread mapping and memory access patterns before moving to tiling and shared memory.
+## Why This Example Matters
 
-## PMPP Ideas To Focus On
+This is the baseline dense GEMM example. It matters because the optimized tiled version only makes sense once the naive mapping and its global-memory cost are clear.
 
-- 2D output mapping
-- global memory baseline
-- correctness first
+## CUDA Concepts Taught
 
-## What You Should Learn Here
+- 2D thread/block mapping
+- one-thread-per-output-element mapping
+- baseline dense numeric kernels
+- benchmark mode for a compute-heavy workload
 
-- How a 2D output matrix maps onto threads
-- Why naive matrix multiply rereads input values from global memory many times
-- Why a slow baseline is still important for understanding the optimized version
+## Prerequisites
 
-## Study Prompts
-
-- Point to the exact lines where a thread chooses its output row and column.
-- Count conceptually how many repeated global-memory reads happen for one output tile.
-- Compare this structure with `043_tiled-matrix-multiply`.
+- `002_vector-addition`
+- `023_sum-reduction`
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 32
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 128 --warmup 5 --iters 10
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
-- Start with the included tiny matrices before scaling up.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when GPU and CPU matrix products match within tolerance.
+- Benchmark mode prints timing and output-element throughput.
 
-- Change matrix sizes.
-- Compare against the tiled version.
-- Try a 2D block configuration if you want a more image-like mapping.
+## Correctness Notes
+
+- The example uses square matrices driven by a single `--size` value.
+- Validation compares every output element against the CPU product.
+
+## Benchmark Notes
+
+- This version is intentionally naive and rereads matrix values from global memory many times.
+
+## Likely Bottlenecks
+
+- repeated global-memory loads
+- low arithmetic intensity relative to optimized tiled variants
+
+## Next Optimization Steps
+
+- compare directly with `043_tiled-matrix-multiply`
+- experiment with different block shapes
+- add rectangular matrix support

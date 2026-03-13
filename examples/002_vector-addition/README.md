@@ -2,57 +2,84 @@
 
 - Track: `Foundations`
 - Difficulty: `Beginner`
-- Status: `Reference-friendly`
-- GitHub batch: `001-020`
+- Status: `✅ fully mature`
+- Maturity: `Level 6 - polished teaching example`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Vector Addition**.
+Build a trustworthy CUDA hello-world example that demonstrates the full host/device workflow:
 
-This is the canonical CUDA "hello world" example. It demonstrates:
+- allocate GPU memory
+- copy host inputs to the device
+- launch a simple kernel
+- copy results back
+- validate against a CPU reference
 
-- basic kernel functions
-- memory allocation on the GPU
-- data transfer between host and device
-- CPU/GPU result checking
+## Why This Example Matters
 
-## PMPP Ideas To Focus On
+This is the cleanest starting point for CUDA study. It keeps the algorithm simple so you can focus on kernel launches, memory movement, and correctness.
 
-- 1D indexing
-- coalesced access
-- CPU vs GPU validation
+## CUDA Concepts Taught
 
-## What You Should Learn Here
+- 1D thread indexing
+- global memory access
+- host-to-device and device-to-host copies
+- CPU reference validation
+- benchmark mode for a memory-bound kernel
 
-- How one thread maps to one array element
-- How `cudaMalloc`, `cudaMemcpy`, and a kernel launch fit together
-- Why this is the simplest complete CUDA workflow worth mastering first
+## Prerequisites
 
-## Study Prompts
-
-- Identify where host memory ends and device memory begins in `main.cu`.
-- Explain why the bounds check is still needed in such a simple kernel.
-- Rewrite the kernel as a grid-stride loop and compare the structure.
+- `001_hello-world-kernel`
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
+Correctness mode:
+
 ```powershell
-.\example.exe
+.\example.exe --check --size 4096
 ```
 
-## Validation
+Benchmark mode:
 
-- The program prints `PASS` when GPU output matches the CPU reference or expected pattern.
-- Start with the built-in small inputs before scaling up.
+```powershell
+.\example.exe --bench --size 1048576 --warmup 5 --iters 20
+```
 
-## What To Modify Next
+Benchmark mode with validation first:
 
-- Switch to a grid-stride loop.
-- Benchmark larger arrays.
-- Add CUDA event timing.
+```powershell
+.\example.exe --check --bench --size 1048576 --warmup 5 --iters 20
+```
+
+## Expected Output
+
+- Prints `PASS` when the GPU output matches the CPU reference within tolerance.
+- In benchmark mode, prints average, minimum, and maximum runtime along with effective bandwidth and elements per second.
+
+## Correctness Notes
+
+- Inputs are generated deterministically from a fixed seed.
+- Validation is elementwise against a CPU reference.
+- Floating-point comparisons use a `1e-5` absolute tolerance.
+
+## Benchmark Notes
+
+- This kernel is primarily memory-bandwidth bound.
+- Effective GB/s is estimated from reading two input vectors and writing one output vector.
+
+## Likely Bottlenecks
+
+- global memory bandwidth
+- launch overhead for very small arrays
+
+## Next Optimization Steps
+
+- rewrite the kernel as a grid-stride loop
+- compare pageable vs pinned host memory for transfer-heavy runs
+- add a fused arithmetic variant and compare throughput

@@ -1,0 +1,26 @@
+number: 42
+slug: naive-matrix-multiply
+title: Naive Matrix Multiply
+module: linear-algebra
+category: dense-matrix
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+description: >
+  Multiply two dense square matrices with a simple global-memory kernel and validate
+  against a CPU reference.
+
+concepts:
+  - 2d thread mapping
+  - output-space mapping
+  - baseline dense linear algebra
+  - correctness before optimization
+
+prerequisites:
+  - 002_vector-addition
+  - 023_sum-reduction
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-4

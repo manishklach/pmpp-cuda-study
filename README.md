@@ -2,6 +2,26 @@
 
 A structured CUDA study repository with **100 examples** ordered from simple kernels to advanced PMPP-style workloads.
 
+This repo is now being upgraded from broad curriculum coverage into a more mature PMPP-style study library with shared utilities, validation patterns, benchmark mode, and clearer example maturity tracking.
+
+## Maturity Focus
+
+- Shared runtime helpers now live under `include/pmpp/`.
+- Flagship examples are being upgraded to use common `--check` and `--bench` modes.
+- Example maturity is tracked with `meta.yaml` files and the model in [docs/maturity-model.md](docs/maturity-model.md).
+
+## Trusted Core
+
+The best current examples to study first if you want the most mature path through the repo are:
+
+- `002_vector-addition`
+- `007_saxpy`
+- `023_sum-reduction`
+- `042_naive-matrix-multiply`
+- `043_tiled-matrix-multiply`
+- `049_gaussian-blur`
+- `080_n-body-tiled`
+
 ## Included
 
 - 100 numbered example folders with CUDA study material
@@ -32,9 +52,11 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 
 - Curriculum map: [docs/curriculum-map.md](docs/curriculum-map.md)
 - Status tracking: [docs/status.md](docs/status.md)
+- Maturity model: [docs/maturity-model.md](docs/maturity-model.md)
 - Example conventions: [docs/example-conventions.md](docs/example-conventions.md)
 - Scaffold templates: [templates/](templates)
 - Example generator: [tools/generate_examples.py](tools/generate_examples.py)
+- Local validation scripts: [scripts/](scripts)
 
 ## Featured Study Examples
 

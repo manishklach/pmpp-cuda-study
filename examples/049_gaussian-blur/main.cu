@@ -1,78 +1,142 @@
-// Example 049: Gaussian Blur
-// Difficulty: Intermediate
-
-// Track: Linear Algebra
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
+
 #include <algorithm>
-#include <cmath>
-#include <cfloat>
-#include <climits>
 #include <cstdlib>
 #include <iostream>
-#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                       \
-  do {                                                                                         \
-    cudaError_t status__ = (call);                                                             \
-    if (status__ != cudaSuccess) {                                                             \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":" \
-                << __LINE__ << std::endl;                                                      \
-      std::exit(EXIT_FAILURE);                                                                 \
-    }                                                                                          \
-  } while (0)
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/random_inputs.cuh"
+#include "pmpp/report.cuh"
 
-__global__ void gaussian_kernel(const float *input, float *output, int w, int h) {
-  __shared__ float k[9];
-  if (threadIdx.x < 9 && threadIdx.y == 0) {
-    float vals[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
-    k[threadIdx.x] = vals[threadIdx.x] / 16.0f;
+namespace {
+
+constexpr const char *kExampleName = "049_gaussian-blur";
+
+__global__ void gaussian_kernel(const float *input, float *output, int width, int height) {
+  __shared__ float kernel[9];
+  if (threadIdx.y == 0 && threadIdx.x < 9) {
+    const float values[9] = {1.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f, 2.0f / 16.0f,
+                             4.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f, 2.0f / 16.0f,
+                             1.0f / 16.0f};
+    kernel[threadIdx.x] = values[threadIdx.x];
   }
   __syncthreads();
-  int x = blockIdx.x * blockDim.x + threadIdx.x, y = blockIdx.y * blockDim.y + threadIdx.y;
-  if (x < w && y < h) {
-    float sum = 0.0f;
-    for (int ky = -1; ky <= 1; ++ky)
-      for (int kx = -1; kx <= 1; ++kx) {
-        int sx = min(max(x + kx, 0), w - 1);
-        int sy = min(max(y + ky, 0), h - 1);
-        sum += input[sy * w + sx] * k[(ky + 1) * 3 + (kx + 1)];
-      }
-    output[y * w + x] = sum;
+
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+  if (x >= width || y >= height)
+    return;
+
+  float sum = 0.0f;
+  for (int ky = -1; ky <= 1; ++ky) {
+    for (int kx = -1; kx <= 1; ++kx) {
+      int sx = min(max(x + kx, 0), width - 1);
+      int sy = min(max(y + ky, 0), height - 1);
+      sum += input[sy * width + sx] * kernel[(ky + 1) * 3 + (kx + 1)];
+    }
   }
+  output[y * width + x] = sum;
 }
-int main() {
-  const int w = 8, h = 8;
-  std::vector<float> in(w * h), gpu(w * h, 0.0f), cpu(w * h, 0.0f),
-      k = {1 / 16.0f, 2 / 16.0f, 1 / 16.0f, 2 / 16.0f, 4 / 16.0f,
-           2 / 16.0f, 1 / 16.0f, 2 / 16.0f, 1 / 16.0f};
-  for (int i = 0; i < w * h; ++i)
-    in[i] = (float)((i % 5) + 1);
-  for (int y = 0; y < h; ++y)
-    for (int x = 0; x < w; ++x)
-      for (int ky = -1; ky <= 1; ++ky)
+
+std::vector<float> cpu_reference(const std::vector<float> &input, int width, int height) {
+  const float kernel[9] = {1.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f, 2.0f / 16.0f,
+                           4.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f, 2.0f / 16.0f,
+                           1.0f / 16.0f};
+  std::vector<float> output(input.size(), 0.0f);
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      float sum = 0.0f;
+      for (int ky = -1; ky <= 1; ++ky) {
         for (int kx = -1; kx <= 1; ++kx) {
-          int sx = std::min(std::max(x + kx, 0), w - 1);
-          int sy = std::min(std::max(y + ky, 0), h - 1);
-          cpu[y * w + x] += in[sy * w + sx] * k[(ky + 1) * 3 + (kx + 1)];
+          int sx = std::clamp(x + kx, 0, width - 1);
+          int sy = std::clamp(y + ky, 0, height - 1);
+          sum += input[sy * width + sx] * kernel[(ky + 1) * 3 + (kx + 1)];
         }
-  float *di = nullptr, *do_ = nullptr;
-  CHECK_CUDA(cudaMalloc(&di, in.size() * sizeof(float)));
-  CHECK_CUDA(cudaMalloc(&do_, gpu.size() * sizeof(float)));
-  CHECK_CUDA(cudaMemcpy(di, in.data(), in.size() * sizeof(float), cudaMemcpyHostToDevice));
-  dim3 t(16, 16), bl((w + t.x - 1) / t.x, (h + t.y - 1) / t.y);
-  gaussian_kernel<<<bl, t>>>(di, do_, w, h);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(gpu.data(), do_, gpu.size() * sizeof(float), cudaMemcpyDeviceToHost));
-  bool ok = true;
-  for (size_t i = 0; i < gpu.size(); ++i)
-    if (std::fabs(gpu[i] - cpu[i]) > 1e-5f)
-      ok = false;
-  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(di));
-  CHECK_CUDA(cudaFree(do_));
-  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
+      }
+      output[y * width + x] = sum;
+    }
+  }
+  return output;
+}
+
+pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
+  const int width = options.size;
+  const int height = options.size;
+  const std::size_t bytes = static_cast<std::size_t>(width) * height * sizeof(float);
+  std::vector<float> input = pmpp::make_uniform_floats(width * height, options.seed, 0.0f, 1.0f);
+  std::vector<float> gpu(width * height, 0.0f);
+  std::vector<float> cpu = cpu_reference(input, width, height);
+
+  float *device_input = nullptr;
+  float *device_output = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_input, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_output, bytes));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_input, input.data(), bytes, cudaMemcpyHostToDevice));
+
+  dim3 threads(16, 16);
+  dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
+  gaussian_kernel<<<blocks, threads>>>(device_input, device_output, width, height);
+  PMPP_CUDA_KERNEL_CHECK();
+
+  PMPP_CUDA_CHECK(cudaMemcpy(gpu.data(), device_output, bytes, cudaMemcpyDeviceToHost));
+  PMPP_CUDA_CHECK(cudaFree(device_input));
+  PMPP_CUDA_CHECK(cudaFree(device_output));
+
+  pmpp::ValidationSummary summary = pmpp::compare_vectors(cpu, gpu, 1.0e-5f);
+  summary.notes = "Borders use clamped sampling so every output pixel has a well-defined neighborhood.";
+  return summary;
+}
+
+pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
+  const int width = options.size;
+  const int height = options.size;
+  const std::size_t bytes = static_cast<std::size_t>(width) * height * sizeof(float);
+  std::vector<float> input = pmpp::make_uniform_floats(width * height, options.seed, 0.0f, 1.0f);
+
+  float *device_input = nullptr;
+  float *device_output = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_input, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_output, bytes));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_input, input.data(), bytes, cudaMemcpyHostToDevice));
+
+  dim3 threads(16, 16);
+  dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
+  pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+    gaussian_kernel<<<blocks, threads>>>(device_input, device_output, width, height);
+    PMPP_CUDA_KERNEL_CHECK();
+  });
+  stats.bandwidth_gbps = pmpp::bandwidth_gbps(bytes * 2, stats.avg_ms);
+  stats.throughput =
+      pmpp::elements_per_second(static_cast<std::size_t>(width) * height, stats.avg_ms);
+
+  PMPP_CUDA_CHECK(cudaFree(device_input));
+  PMPP_CUDA_CHECK(cudaFree(device_output));
+  return stats;
+}
+
+}  // namespace
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+
+  if (options.check) {
+    pmpp::ValidationSummary summary = run_check(options);
+    pmpp::print_validation_report(kExampleName, summary);
+    if (!summary.ok)
+      return EXIT_FAILURE;
+  }
+
+  if (options.bench) {
+    if (!options.verify)
+      std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::BenchmarkStats stats = run_bench(options);
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters,
+                                 "Pixels/sec");
+  }
+
+  return EXIT_SUCCESS;
 }

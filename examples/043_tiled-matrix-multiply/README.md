@@ -2,52 +2,67 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `041-060`
+- Status: `✅ fully mature`
+- Maturity: `Level 6 - polished teaching example`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Tiled Matrix Multiply**.
+Multiply two dense square matrices using shared-memory tiling, then validate the result against a CPU reference.
 
-This is the foundational matrix multiplication optimization example in the repo. It is meant to teach thread mapping, memory access patterns, tiling, and shared memory usage.
+## Why This Example Matters
 
-## PMPP Ideas To Focus On
+This is one of the most important CUDA study examples in the repo. It brings together thread mapping, tiling, synchronization, and memory reuse in a form that is easy to compare against a naive baseline.
+
+## CUDA Concepts Taught
 
 - shared-memory tiles
-- data reuse
-- block-level synchronization
+- block-level cooperation
+- `__syncthreads()`
+- reduced global-memory traffic
+- benchmark mode for an optimized teaching kernel
 
-## What You Should Learn Here
+## Prerequisites
 
-- How tiling reduces repeated global-memory traffic
-- Why threads in a block cooperate through shared memory
-- Where `__syncthreads()` matters for correctness
-
-## Study Prompts
-
-- Identify one load that becomes reusable because of shared-memory tiling.
-- Explain what would break if synchronization were removed.
-- Compare the memory-access idea here with `042_naive-matrix-multiply`.
+- `042_naive-matrix-multiply`
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 32
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 128 --warmup 5 --iters 10
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
-- Start with the included tiny matrices before scaling up.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when GPU output matches the CPU result within tolerance.
+- Benchmark mode prints timing and output-element throughput.
 
-- Try tile sizes 8, 16, and 32.
-- Compare numerical output with the naive kernel.
-- Measure the effect of tile size on runtime.
+## Correctness Notes
+
+- The CPU reference uses the same square-matrix shape as the GPU kernel.
+- Validation uses an absolute tolerance of `1e-4`.
+
+## Benchmark Notes
+
+- This kernel should outperform the naive version for larger sizes because each tile load is reused by multiple threads.
+
+## Likely Bottlenecks
+
+- shared-memory capacity limits
+- tile size choice
+- synchronization overhead
+
+## Next Optimization Steps
+
+- compare against `042_naive-matrix-multiply`
+- try tile sizes 8, 16, and 32
+- add rectangular matrix support and block-shape experiments

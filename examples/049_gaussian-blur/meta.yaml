@@ -1,0 +1,25 @@
+number: 49
+slug: gaussian-blur
+title: Gaussian Blur
+module: linear-algebra
+category: image-processing
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+description: >
+  Apply a 3x3 Gaussian blur to a square image with CPU validation and benchmark mode.
+
+concepts:
+  - 2d grids
+  - neighborhood access
+  - clamped borders
+  - image filtering
+
+prerequisites:
+  - 012_rgb-to-grayscale
+  - 043_tiled-matrix-multiply
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-5
