@@ -18,6 +18,13 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
+## Featured Study Examples
+
+- Vector Addition: the canonical CUDA starting point for kernel launches, host/device allocation, and memory copies. See `002_vector-addition`.
+- Matrix Multiplication: a foundational optimization example for thread mapping, tiling, memory reuse, and shared memory. See `042_naive-matrix-multiply` and `043_tiled-matrix-multiply`.
+- Image Processing: useful for learning 2D grids and pixel mapping strategies. See `012_rgb-to-grayscale`, `049_gaussian-blur`, `061_image-resize-nearest-neighbor`, and `062_image-resize-bilinear`.
+- Parallel Reduction: core PMPP material for collapsing large datasets into one answer while studying divergence and shared-memory optimization. See `023_sum-reduction`, `024_max-reduction`, and `025_min-reduction`.
+
 ## Example Index
 
 | # | Example | Track | Difficulty | Link |

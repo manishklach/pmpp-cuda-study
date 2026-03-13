@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **DBSCAN Acceleration** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Accelerate the expensive neighbor-count stage of DBSCAN by computing epsilon-neighborhood sizes and core-point flags on the GPU.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- pairwise distance checks
+- separating acceleration stages from full clustering logic
+- core-point detection as a reusable primitive
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This focuses on the most GPU-friendly DBSCAN subproblem instead of the full cluster expansion.
+- The output tells you which points are core points for a chosen epsilon and `minPts`.
+- A next step is building cluster growth on top of these neighbor relationships.

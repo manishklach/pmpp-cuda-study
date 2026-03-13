@@ -1,7 +1,7 @@
 // Example 099: MLP Backpropagation
 // Track: Graph and ML
 // Difficulty: Advanced
-// Status: Guided template
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
 #include <cmath>
@@ -9,85 +9,82 @@
 #include <iostream>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
 
-// - Study focus: irregular parallelism
-// - Study focus: iteration strategy
-// - Study focus: scalability planning
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
+__global__ void output_grad_kernel(const float *hidden, const float *prediction,
+                                   const float *target, float *grad_w, float *grad_b,
+                                   int hidden_dim, int out_dim) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+  int total = hidden_dim * out_dim;
+  if (idx < total) {
+    int o = idx / hidden_dim;
+    int h = idx % hidden_dim;
+    float delta = prediction[o] - target[o];
+    grad_w[idx] = delta * hidden[h];
   }
-}
-
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
-
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
+  if (idx < out_dim)
+    grad_b[idx] = prediction[idx] - target[idx];
 }
 
 int main() {
-  std::cout << "Running 099" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
-
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
+  const int hidden_dim = 3, out_dim = 2;
+  std::vector<float> hidden = {1.2f, 0.0f, 0.7f};
+  std::vector<float> prediction = {0.9f, -0.3f};
+  std::vector<float> target = {1.0f, 0.2f};
+  std::vector<float> cpu_w(hidden_dim * out_dim, 0.0f), cpu_b(out_dim, 0.0f);
+  std::vector<float> gpu_w(cpu_w.size(), 0.0f), gpu_b(cpu_b.size(), 0.0f);
+  for (int o = 0; o < out_dim; ++o) {
+    float delta = prediction[o] - target[o];
+    cpu_b[o] = delta;
+    for (int h = 0; h < hidden_dim; ++h)
+      cpu_w[o * hidden_dim + h] = delta * hidden[h];
   }
 
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
+  float *d_hidden = nullptr, *d_prediction = nullptr, *d_target = nullptr, *d_grad_w = nullptr,
+        *d_grad_b = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_hidden, hidden_dim * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&d_prediction, out_dim * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&d_target, out_dim * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&d_grad_w, gpu_w.size() * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&d_grad_b, gpu_b.size() * sizeof(float)));
+  CHECK_CUDA(
+      cudaMemcpy(d_hidden, hidden.data(), hidden_dim * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK_CUDA(
+      cudaMemcpy(d_prediction, prediction.data(), out_dim * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(d_target, target.data(), out_dim * sizeof(float), cudaMemcpyHostToDevice));
+  output_grad_kernel<<<1, 256>>>(d_hidden, d_prediction, d_target, d_grad_w, d_grad_b, hidden_dim,
+                                 out_dim);
+  CHECK_CUDA(cudaGetLastError());
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(
+      cudaMemcpy(gpu_w.data(), d_grad_w, gpu_w.size() * sizeof(float), cudaMemcpyDeviceToHost));
+  CHECK_CUDA(
+      cudaMemcpy(gpu_b.data(), d_grad_b, gpu_b.size() * sizeof(float), cudaMemcpyDeviceToHost));
 
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  bool ok = true;
+  for (std::size_t i = 0; i < gpu_w.size(); ++i)
+    if (std::fabs(cpu_w[i] - gpu_w[i]) > 1.0e-6f)
+      ok = false;
+  for (std::size_t i = 0; i < gpu_b.size(); ++i)
+    if (std::fabs(cpu_b[i] - gpu_b[i]) > 1.0e-6f)
+      ok = false;
+  std::cout << "Bias gradients:";
+  for (float value : gpu_b)
+    std::cout << " " << value;
+  std::cout << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(d_hidden));
+  CHECK_CUDA(cudaFree(d_prediction));
+  CHECK_CUDA(cudaFree(d_target));
+  CHECK_CUDA(cudaFree(d_grad_w));
+  CHECK_CUDA(cudaFree(d_grad_b));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **MLP Backpropagation** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Compute output-layer gradients for a tiny MLP using mean-squared error and a fixed hidden activation vector.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- parallel gradient computation across weights
+- separating forward activations from backward signals
+- building intuition for training kernels before optimizer logic
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This keeps backprop focused on one layer so the gradient formulas stay visible.
+- The output includes bias and weight gradients for a deterministic target.
+- A next step is extending the gradient chain through the hidden layer.

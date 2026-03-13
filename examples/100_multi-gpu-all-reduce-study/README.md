@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Multi GPU All Reduce Study** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Study an all-reduce pattern by simulating two device shards, a reduce step, and a broadcast step in one CUDA program.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- collective communication structure
+- partitioned tensor updates
+- honesty about single-process study scaffolds versus real multi-GPU execution
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This example simulates the dataflow of all-reduce on one device so the algorithm is inspectable without requiring multi-GPU hardware.
+- It is best read as a conceptual stepping stone toward NCCL-based implementations.
+- A next step is replacing the virtual shards with real device-local buffers on multiple GPUs.

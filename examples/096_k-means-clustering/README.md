@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **K Means Clustering** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Run a few K-means iterations on a tiny 2D dataset using separate assignment and centroid-update phases.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- point-parallel distance evaluation
+- reduction into cluster sums
+- iterative ML-style optimization loops
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a compact clustering example with clearly separated phases.
+- Atomic sums are acceptable here because the dataset is intentionally tiny.
+- A next step is using shared memory or mini-batches for larger inputs.

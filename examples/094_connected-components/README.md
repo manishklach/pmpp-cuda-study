@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Connected Components** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Find connected components on a small undirected graph using iterative label propagation.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- iterative convergence on irregular graphs
+- edge-parallel label updates
+- comparing graph kernels against a simple CPU baseline
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- Label propagation is simple to follow and great for small study graphs.
+- The repeated passes make the convergence behavior visible.
+- A next step is experimenting with union-find or hooking this to BFS-style frontiers.

@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Neural Network Forward Pass** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Compute a small two-layer MLP forward pass with ReLU activation on the GPU.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- dense linear algebra as batched neuron evaluation
+- activation functions as elementwise kernels
+- mapping model layers into simple CUDA stages
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is the simplest end-to-end neural network example in the repo.
+- The implementation favors readability over GEMM-level optimization.
+- A next step is batching multiple inputs or replacing the dense loops with cuBLAS.

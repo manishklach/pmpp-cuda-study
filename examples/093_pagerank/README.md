@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **PageRank** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Run a few PageRank iterations on a tiny directed graph using one contribution pass and one normalization pass per iteration.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- iterative graph analytics
+- atomic accumulation from outgoing edges
+- repeated kernel launches with damping
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This keeps the graph tiny so you can verify the rank updates by hand.
+- The implementation uses edge-parallel contribution accumulation for clarity.
+- A next step is handling dangling nodes and larger sparse graphs more carefully.
