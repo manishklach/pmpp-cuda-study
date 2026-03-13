@@ -1,0 +1,11 @@
+number: 40
+slug: top-k-selection
+title: Top K Selection
+module: parallel-patterns
+category: sorting
+difficulty: intermediate
+status: verified
+maturity_level: 4
+validation:
+  type: cpu_reference
+  tolerance: 0

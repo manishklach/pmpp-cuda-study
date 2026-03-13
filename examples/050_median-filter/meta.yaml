@@ -1,0 +1,11 @@
+number: 50
+slug: median-filter
+title: Median Filter
+module: linear-algebra
+category: image-processing
+difficulty: intermediate
+status: verified
+maturity_level: 4
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-5

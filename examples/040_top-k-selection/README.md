@@ -2,37 +2,20 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Top K Selection**.
-
-## PMPP Ideas To Focus On
-
-- selection versus full sort
-- partial ordering
-- GPU-assisted ranking
+Select the largest `k` values by sorting a small array on the GPU and comparing against a CPU top-k reference.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check
 ```
-
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
-
-## What To Modify Next
-
-- Change K and inspect output stability.
-- Replace full sort with iterative selection later.

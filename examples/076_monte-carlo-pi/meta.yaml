@@ -1,0 +1,11 @@
+number: 76
+slug: monte-carlo-pi
+title: Monte Carlo Pi
+module: simulation
+category: monte-carlo
+difficulty: intermediate
+status: verified
+maturity_level: 4
+validation:
+  type: stochastic_tolerance
+  tolerance: 0.05

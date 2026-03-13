@@ -1,0 +1,4 @@
+default:
+  size: 32
+  warmup: 10
+  iters: 100

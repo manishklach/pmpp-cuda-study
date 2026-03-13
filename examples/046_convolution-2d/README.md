@@ -2,37 +2,20 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `041-060`
+- Status: `🧪 verified`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Convolution 2D**.
-
-## PMPP Ideas To Focus On
-
-- 2D neighborhoods
-- filter loops
-- image-style indexing
+Apply a direct 3x3 2D convolution on the GPU and validate the image against a CPU reference.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 256
 ```
-
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
-- Start with the included tiny matrices before scaling up.
-
-## What To Modify Next
-
-- Swap in a sharpening kernel.
-- Try non-square filters.

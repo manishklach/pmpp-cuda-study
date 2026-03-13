@@ -1,0 +1,11 @@
+number: 61
+slug: image-resize-nearest-neighbor
+title: Image Resize Nearest Neighbor
+module: image-and-signal
+category: image-processing
+difficulty: intermediate
+status: verified
+maturity_level: 4
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-6

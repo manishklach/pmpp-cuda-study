@@ -1,0 +1,11 @@
+number: 39
+slug: merge-two-sorted-arrays
+title: Merge Two Sorted Arrays
+module: parallel-patterns
+category: irregular
+difficulty: intermediate
+status: verified
+maturity_level: 4
+validation:
+  type: cpu_reference
+  tolerance: 0

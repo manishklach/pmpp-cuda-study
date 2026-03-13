@@ -2,37 +2,20 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `041-060`
+- Status: `🧪 verified`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Median Filter**.
-
-## PMPP Ideas To Focus On
-
-- small-window sorting
-- nonlinear filtering
-- impulse-noise removal
+Apply a 3x3 median filter on the GPU and validate it against a CPU reference.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 256
 ```
-
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
-- Start with the included tiny matrices before scaling up.
-
-## What To Modify Next
-
-- Try a 5x5 window later.
-- Compare against Gaussian blur on noisy input.

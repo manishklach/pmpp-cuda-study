@@ -1,30 +1,19 @@
-// Example 039: Merge Two Sorted Arrays
-
-// Track: Parallel Patterns
-// Difficulty: Intermediate
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
+
 #include <algorithm>
-#include <cmath>
-#include <cfloat>
 #include <climits>
 #include <cstdlib>
 #include <iostream>
-#include <limits>
-#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/report.cuh"
 
+namespace {
+constexpr const char *kExampleName = "039_merge-two-sorted-arrays";
 __global__ void merge_kernel(const int *a, int na, const int *b, int nb, int *out) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   int total = na + nb;
@@ -45,25 +34,50 @@ __global__ void merge_kernel(const int *a, int na, const int *b, int nb, int *ou
     out[idx] = min(a_val, b_val);
   }
 }
-int main() {
-  std::vector<int> a = {1, 4, 7, 10, 13, 16, 19, 22};
-  std::vector<int> b = {0, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17};
-  std::vector<int> cpu(a.size() + b.size()), gpu(cpu.size());
+}
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+  int na = std::max(8, options.size / 2);
+  int nb = std::max(8, options.size - na);
+  std::vector<int> a(na), b(nb), cpu(na + nb), gpu(na + nb);
+  for (int i = 0; i < na; ++i) a[i] = i * 2;
+  for (int i = 0; i < nb; ++i) b[i] = i * 2 + 1;
   std::merge(a.begin(), a.end(), b.begin(), b.end(), cpu.begin());
-  int *da = nullptr, *db = nullptr, *do_ = nullptr;
-  CHECK_CUDA(cudaMalloc(&da, a.size() * sizeof(int)));
-  CHECK_CUDA(cudaMalloc(&db, b.size() * sizeof(int)));
-  CHECK_CUDA(cudaMalloc(&do_, cpu.size() * sizeof(int)));
-  CHECK_CUDA(cudaMemcpy(da, a.data(), a.size() * sizeof(int), cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(db, b.data(), b.size() * sizeof(int), cudaMemcpyHostToDevice));
-  merge_kernel<<<1, 128>>>(da, (int)a.size(), db, (int)b.size(), do_);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(gpu.data(), do_, cpu.size() * sizeof(int), cudaMemcpyDeviceToHost));
-  bool ok = gpu == cpu;
-  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(da));
-  CHECK_CUDA(cudaFree(db));
-  CHECK_CUDA(cudaFree(do_));
-  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
+
+  if (options.check) {
+    int *da = nullptr, *db = nullptr, *dout = nullptr;
+    PMPP_CUDA_CHECK(cudaMalloc(&da, na * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMalloc(&db, nb * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMalloc(&dout, cpu.size() * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMemcpy(da, a.data(), na * sizeof(int), cudaMemcpyHostToDevice));
+    PMPP_CUDA_CHECK(cudaMemcpy(db, b.data(), nb * sizeof(int), cudaMemcpyHostToDevice));
+    merge_kernel<<<(static_cast<int>(cpu.size()) + options.block_size - 1) / options.block_size, options.block_size>>>(da, na, db, nb, dout);
+    PMPP_CUDA_KERNEL_CHECK();
+    PMPP_CUDA_CHECK(cudaMemcpy(gpu.data(), dout, cpu.size() * sizeof(int), cudaMemcpyDeviceToHost));
+    pmpp::ValidationSummary summary = pmpp::compare_vectors(cpu, gpu);
+    summary.notes = "This merge uses diagonal partitioning to assign output positions in parallel.";
+    pmpp::print_validation_report(kExampleName, summary);
+    PMPP_CUDA_CHECK(cudaFree(da)); PMPP_CUDA_CHECK(cudaFree(db)); PMPP_CUDA_CHECK(cudaFree(dout));
+    if (!summary.ok) return EXIT_FAILURE;
+  }
+
+  if (options.bench) {
+    int *da = nullptr, *db = nullptr, *dout = nullptr;
+    PMPP_CUDA_CHECK(cudaMalloc(&da, na * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMalloc(&db, nb * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMalloc(&dout, cpu.size() * sizeof(int)));
+    PMPP_CUDA_CHECK(cudaMemcpy(da, a.data(), na * sizeof(int), cudaMemcpyHostToDevice));
+    PMPP_CUDA_CHECK(cudaMemcpy(db, b.data(), nb * sizeof(int), cudaMemcpyHostToDevice));
+    pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+      merge_kernel<<<(static_cast<int>(cpu.size()) + options.block_size - 1) / options.block_size, options.block_size>>>(da, na, db, nb, dout);
+      PMPP_CUDA_KERNEL_CHECK();
+    });
+    stats.bandwidth_gbps = pmpp::bandwidth_gbps((a.size() + b.size() + cpu.size()) * sizeof(int), stats.avg_ms);
+    stats.throughput = pmpp::elements_per_second(cpu.size(), stats.avg_ms);
+    if (!options.verify) std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters, "Elements/sec");
+    PMPP_CUDA_CHECK(cudaFree(da)); PMPP_CUDA_CHECK(cudaFree(db)); PMPP_CUDA_CHECK(cudaFree(dout));
+  }
+  return EXIT_SUCCESS;
 }
