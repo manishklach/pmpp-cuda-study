@@ -1,0 +1,12 @@
+number: 30
+slug: stream-compaction
+title: Stream Compaction
+module: parallel-patterns
+category: irregular
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+validation:
+  type: invariant_plus_sorted_reference
+  tolerance: 0

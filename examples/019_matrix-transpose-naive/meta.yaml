@@ -1,0 +1,12 @@
+number: 19
+slug: matrix-transpose-naive
+title: Matrix Transpose Naive
+module: foundations
+category: matrix
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-6

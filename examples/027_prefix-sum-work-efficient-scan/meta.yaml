@@ -1,0 +1,12 @@
+number: 27
+slug: prefix-sum-work-efficient-scan
+title: Prefix Sum Work Efficient Scan
+module: parallel-patterns
+category: scan
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+validation:
+  type: cpu_reference
+  tolerance: 0

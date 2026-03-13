@@ -2,37 +2,25 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Prefix Sum Work Efficient Scan**.
+Compute an inclusive scan using a Blelloch-style work-efficient structure.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- Blelloch upsweep/downsweep
-- shared memory
-- work efficiency
+This is the more important scan implementation to understand after the naive version because it reduces redundant work and introduces the classic up-sweep/down-sweep pattern.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 128
 ```
-
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
-
-## What To Modify Next
-
-- Turn the inclusive result into exclusive form.
-- Tile across multiple blocks.

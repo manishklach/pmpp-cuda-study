@@ -1,94 +1,160 @@
-// Example 047: Separable Convolution
-// Difficulty: Intermediate
-
-// Track: Linear Algebra
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
+
 #include <algorithm>
-#include <cmath>
-#include <cfloat>
-#include <climits>
 #include <cstdlib>
 #include <iostream>
-#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                       \
-  do {                                                                                         \
-    cudaError_t status__ = (call);                                                             \
-    if (status__ != cudaSuccess) {                                                             \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":" \
-                << __LINE__ << std::endl;                                                      \
-      std::exit(EXIT_FAILURE);                                                                 \
-    }                                                                                          \
-  } while (0)
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/random_inputs.cuh"
+#include "pmpp/report.cuh"
+
+namespace {
+
+constexpr const char *kExampleName = "047_separable-convolution";
+constexpr int kRadius = 1;
 
 __global__ void conv_horizontal_kernel(const float *input, const float *kernel, float *output,
-                                       int w, int h, int radius) {
+                                       int width, int height) {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
-  if (x < w && y < h) {
+  if (x < width && y < height) {
     float sum = 0.0f;
-    for (int k = -radius; k <= radius; ++k) {
-      int sx = min(max(x + k, 0), w - 1);
-      sum += input[y * w + sx] * kernel[k + radius];
+    for (int k = -kRadius; k <= kRadius; ++k) {
+      int sx = min(max(x + k, 0), width - 1);
+      sum += input[y * width + sx] * kernel[k + kRadius];
     }
-    output[y * w + x] = sum;
+    output[y * width + x] = sum;
   }
 }
-__global__ void conv_vertical_kernel(const float *input, const float *kernel, float *output, int w,
-                                     int h, int radius) {
+
+__global__ void conv_vertical_kernel(const float *input, const float *kernel, float *output,
+                                     int width, int height) {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
-  if (x < w && y < h) {
+  if (x < width && y < height) {
     float sum = 0.0f;
-    for (int k = -radius; k <= radius; ++k) {
-      int sy = min(max(y + k, 0), h - 1);
-      sum += input[sy * w + x] * kernel[k + radius];
+    for (int k = -kRadius; k <= kRadius; ++k) {
+      int sy = min(max(y + k, 0), height - 1);
+      sum += input[sy * width + x] * kernel[k + kRadius];
     }
-    output[y * w + x] = sum;
+    output[y * width + x] = sum;
   }
 }
-int main() {
-  const int w = 8, h = 8, r = 1;
-  std::vector<float> in(w * h), ker = {0.25f, 0.5f, 0.25f}, temp(w * h, 0.0f), gpu(w * h, 0.0f),
-                                cpu(w * h, 0.0f), cpu_temp(w * h, 0.0f);
-  for (int i = 0; i < w * h; ++i)
-    in[i] = (float)((i % 9) + 1);
-  for (int y = 0; y < h; ++y)
-    for (int x = 0; x < w; ++x)
-      for (int k = -r; k <= r; ++k) {
-        int sx = std::min(std::max(x + k, 0), w - 1);
-        cpu_temp[y * w + x] += in[y * w + sx] * ker[k + r];
+
+std::vector<float> cpu_reference(const std::vector<float> &input, int width, int height,
+                                 const std::vector<float> &kernel) {
+  std::vector<float> temp(input.size(), 0.0f);
+  std::vector<float> output(input.size(), 0.0f);
+  for (int y = 0; y < height; ++y)
+    for (int x = 0; x < width; ++x)
+      for (int k = -kRadius; k <= kRadius; ++k) {
+        int sx = std::clamp(x + k, 0, width - 1);
+        temp[y * width + x] += input[y * width + sx] * kernel[k + kRadius];
       }
-  for (int y = 0; y < h; ++y)
-    for (int x = 0; x < w; ++x)
-      for (int k = -r; k <= r; ++k) {
-        int sy = std::min(std::max(y + k, 0), h - 1);
-        cpu[y * w + x] += cpu_temp[sy * w + x] * ker[k + r];
+  for (int y = 0; y < height; ++y)
+    for (int x = 0; x < width; ++x)
+      for (int k = -kRadius; k <= kRadius; ++k) {
+        int sy = std::clamp(y + k, 0, height - 1);
+        output[y * width + x] += temp[sy * width + x] * kernel[k + kRadius];
       }
-  float *di = nullptr, *dk = nullptr, *dt = nullptr, *do_ = nullptr;
-  CHECK_CUDA(cudaMalloc(&di, in.size() * sizeof(float)));
-  CHECK_CUDA(cudaMalloc(&dk, ker.size() * sizeof(float)));
-  CHECK_CUDA(cudaMalloc(&dt, temp.size() * sizeof(float)));
-  CHECK_CUDA(cudaMalloc(&do_, gpu.size() * sizeof(float)));
-  CHECK_CUDA(cudaMemcpy(di, in.data(), in.size() * sizeof(float), cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(dk, ker.data(), ker.size() * sizeof(float), cudaMemcpyHostToDevice));
-  dim3 t(16, 16), bl((w + t.x - 1) / t.x, (h + t.y - 1) / t.y);
-  conv_horizontal_kernel<<<bl, t>>>(di, dk, dt, w, h, r);
-  conv_vertical_kernel<<<bl, t>>>(dt, dk, do_, w, h, r);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(gpu.data(), do_, gpu.size() * sizeof(float), cudaMemcpyDeviceToHost));
-  bool ok = true;
-  for (size_t i = 0; i < gpu.size(); ++i)
-    if (std::fabs(gpu[i] - cpu[i]) > 1e-5f)
-      ok = false;
-  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(di));
-  CHECK_CUDA(cudaFree(dk));
-  CHECK_CUDA(cudaFree(dt));
-  CHECK_CUDA(cudaFree(do_));
-  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
+  return output;
+}
+
+pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
+  const int width = options.size;
+  const int height = options.size;
+  const std::size_t bytes = static_cast<std::size_t>(width) * height * sizeof(float);
+  std::vector<float> input = pmpp::make_uniform_floats(width * height, options.seed, 0.0f, 1.0f);
+  std::vector<float> kernel = {0.25f, 0.5f, 0.25f};
+  std::vector<float> cpu = cpu_reference(input, width, height, kernel);
+  std::vector<float> gpu(width * height, 0.0f);
+
+  float *device_input = nullptr;
+  float *device_kernel = nullptr;
+  float *device_temp = nullptr;
+  float *device_output = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_input, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_kernel, kernel.size() * sizeof(float)));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_temp, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_output, bytes));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_input, input.data(), bytes, cudaMemcpyHostToDevice));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_kernel, kernel.data(), kernel.size() * sizeof(float),
+                             cudaMemcpyHostToDevice));
+
+  dim3 threads(16, 16);
+  dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
+  conv_horizontal_kernel<<<blocks, threads>>>(device_input, device_kernel, device_temp, width, height);
+  conv_vertical_kernel<<<blocks, threads>>>(device_temp, device_kernel, device_output, width, height);
+  PMPP_CUDA_KERNEL_CHECK();
+  PMPP_CUDA_CHECK(cudaMemcpy(gpu.data(), device_output, bytes, cudaMemcpyDeviceToHost));
+
+  PMPP_CUDA_CHECK(cudaFree(device_input));
+  PMPP_CUDA_CHECK(cudaFree(device_kernel));
+  PMPP_CUDA_CHECK(cudaFree(device_temp));
+  PMPP_CUDA_CHECK(cudaFree(device_output));
+
+  pmpp::ValidationSummary summary = pmpp::compare_vectors(cpu, gpu, 1.0e-5f);
+  summary.notes = "Separable convolution replaces a 2D filter with two 1D passes.";
+  return summary;
+}
+
+pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
+  const int width = options.size;
+  const int height = options.size;
+  const std::size_t bytes = static_cast<std::size_t>(width) * height * sizeof(float);
+  std::vector<float> input = pmpp::make_uniform_floats(width * height, options.seed, 0.0f, 1.0f);
+  std::vector<float> kernel = {0.25f, 0.5f, 0.25f};
+
+  float *device_input = nullptr;
+  float *device_kernel = nullptr;
+  float *device_temp = nullptr;
+  float *device_output = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_input, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_kernel, kernel.size() * sizeof(float)));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_temp, bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_output, bytes));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_input, input.data(), bytes, cudaMemcpyHostToDevice));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_kernel, kernel.data(), kernel.size() * sizeof(float),
+                             cudaMemcpyHostToDevice));
+
+  dim3 threads(16, 16);
+  dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
+  pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+    conv_horizontal_kernel<<<blocks, threads>>>(device_input, device_kernel, device_temp, width, height);
+    conv_vertical_kernel<<<blocks, threads>>>(device_temp, device_kernel, device_output, width, height);
+    PMPP_CUDA_KERNEL_CHECK();
+  });
+  stats.bandwidth_gbps = pmpp::bandwidth_gbps(bytes * 3, stats.avg_ms);
+  stats.throughput =
+      pmpp::elements_per_second(static_cast<std::size_t>(width) * height, stats.avg_ms);
+
+  PMPP_CUDA_CHECK(cudaFree(device_input));
+  PMPP_CUDA_CHECK(cudaFree(device_kernel));
+  PMPP_CUDA_CHECK(cudaFree(device_temp));
+  PMPP_CUDA_CHECK(cudaFree(device_output));
+  return stats;
+}
+
+}  // namespace
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+  if (options.check) {
+    pmpp::ValidationSummary summary = run_check(options);
+    pmpp::print_validation_report(kExampleName, summary);
+    if (!summary.ok)
+      return EXIT_FAILURE;
+  }
+  if (options.bench) {
+    if (!options.verify)
+      std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::BenchmarkStats stats = run_bench(options);
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters,
+                                 "Pixels/sec");
+  }
+  return EXIT_SUCCESS;
 }

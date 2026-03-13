@@ -2,37 +2,25 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `041-060`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Separable Convolution**.
+Apply a separable 3-tap blur with horizontal and vertical GPU passes and validate against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- two-pass filtering
-- algorithmic speedup
-- intermediate buffers
+This is a clean optimization-oriented image kernel because it turns one 2D stencil into two simpler 1D passes.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 64
 ```
-
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
-- Start with the included tiny matrices before scaling up.
-
-## What To Modify Next
-
-- Compare against direct 2D convolution.
-- Use different horizontal and vertical kernels.

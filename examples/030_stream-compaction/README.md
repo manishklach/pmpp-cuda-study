@@ -2,37 +2,25 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Stream Compaction**.
+Filter positive integers into a compact output buffer on the GPU.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- predicate filtering
-- atomic output reservation
-- packed outputs
+Compaction is one of the most useful irregular GPU primitives. This baseline uses atomic reservation so the keep/discard pattern is easy to follow.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 128
 ```
-
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
-
-## What To Modify Next
-
-- Swap the predicate.
-- Replace atomics with scan-based compaction later.

@@ -2,37 +2,29 @@
 
 - Track: `Foundations`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `001-020`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Matrix Transpose Naive**.
+Transpose a matrix using a direct global-memory kernel and validate the result against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- row-major indexing
-- strided writes
-- baseline transpose
+This is the baseline for studying transpose memory behavior before shared-memory tiling is introduced.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 64
 ```
 
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference or expected pattern.
-- Start with the built-in small inputs before scaling up.
-
-## What To Modify Next
-
-- Try rectangular inputs.
-- Time it against the tiled version later.
+```powershell
+.\example.exe --bench --size 256 --warmup 5 --iters 20
+```

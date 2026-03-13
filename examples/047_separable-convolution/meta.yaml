@@ -1,0 +1,12 @@
+number: 47
+slug: separable-convolution
+title: Separable Convolution
+module: linear-algebra
+category: convolution
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-5

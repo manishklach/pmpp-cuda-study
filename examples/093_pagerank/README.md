@@ -2,33 +2,25 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Reference-friendly`
-- GitHub batch: `081-100`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Run a few PageRank iterations on a tiny directed graph using one contribution pass and one normalization pass per iteration.
+Run several PageRank iterations on a deterministic graph and validate the ranks against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- iterative graph analytics
-- atomic accumulation from outgoing edges
-- repeated kernel launches with damping
+PageRank is a strong graph-analytics study example because it combines sparse-style graph traversal with iterative floating-point updates.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 16
 ```
-
-## Study Notes
-
-- This keeps the graph tiny so you can verify the rank updates by hand.
-- The implementation uses edge-parallel contribution accumulation for clarity.
-- A next step is handling dangling nodes and larger sparse graphs more carefully.

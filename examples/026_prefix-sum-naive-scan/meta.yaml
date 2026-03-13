@@ -1,0 +1,12 @@
+number: 26
+slug: prefix-sum-naive-scan
+title: Prefix Sum Naive Scan
+module: parallel-patterns
+category: scan
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+validation:
+  type: cpu_reference
+  tolerance: 0

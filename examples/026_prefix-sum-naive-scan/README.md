@@ -2,37 +2,25 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Prefix Sum Naive Scan**.
+Compute an inclusive scan using a simple Hillis-Steele style one-block implementation.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- Hillis-Steele scan
-- iterative passes
-- inclusive prefix behavior
+This is the conceptual baseline for scan. It is not the most efficient form, but it makes the data dependencies easy to see.
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 128
 ```
-
-## Validation
-
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
-
-## What To Modify Next
-
-- Convert to exclusive scan.
-- Handle larger-than-one-block inputs.
