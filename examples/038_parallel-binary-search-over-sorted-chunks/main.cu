@@ -1,12 +1,18 @@
 // Example 038: Parallel Binary Search Over Sorted Chunks
+
 // Track: Parallel Patterns
 // Difficulty: Intermediate
-// Status: Guided template
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
+#include <algorithm>
 #include <cmath>
+#include <cfloat>
+#include <climits>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
+#include <numeric>
 #include <vector>
 
 #define CHECK_CUDA(call)                                                                           \
@@ -19,75 +25,56 @@
     }                                                                                              \
   } while (0)
 
-// - Study focus: work decomposition
-// - Study focus: shared memory or atomics
-// - Study focus: validation before tuning
-
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
+__global__ void batched_binary_search_kernel(const int *data, const int *queries, int *positions,
+                                             int chunk_size, int total_size, int query_count) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+  if (idx < query_count) {
+    int q = queries[idx];
+    int chunk = idx % (total_size / chunk_size);
+    int lo = chunk * chunk_size, hi = lo + chunk_size - 1, pos = -1;
+    while (lo <= hi) {
+      int mid = (lo + hi) / 2;
+      int v = data[mid];
+      if (v == q) {
+        pos = mid;
+        break;
+      }
+      if (v < q)
+        lo = mid + 1;
+      else
+        hi = mid - 1;
+    }
+    positions[idx] = pos;
   }
 }
-
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
-
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
-}
-
 int main() {
-  std::cout << "Running 038" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+  const int chunk = 8, chunks = 4, total = chunk * chunks, qn = 8;
+  std::vector<int> data(total), queries(qn), gpu(qn, -1), cpu(qn, -1);
+  for (int c = 0; c < chunks; ++c)
+    for (int i = 0; i < chunk; ++i)
+      data[c * chunk + i] = c * 100 + i * 2;
+  queries = {0, 6, 100, 108, 200, 214, 300, 314};
+  for (int i = 0; i < qn; ++i) {
+    int c = i % chunks;
+    auto begin = data.begin() + c * chunk;
+    auto end = begin + chunk;
+    auto it = std::lower_bound(begin, end, queries[i]);
+    cpu[i] = (it != end && *it == queries[i]) ? (int)(it - data.begin()) : -1;
+  }
+  int *dd = nullptr, *dq = nullptr, *dp = nullptr;
+  CHECK_CUDA(cudaMalloc(&dd, total * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&dq, qn * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&dp, qn * sizeof(int)));
+  CHECK_CUDA(cudaMemcpy(dd, data.data(), total * sizeof(int), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(dq, queries.data(), qn * sizeof(int), cudaMemcpyHostToDevice));
+  batched_binary_search_kernel<<<1, 128>>>(dd, dq, dp, chunk, total, qn);
   CHECK_CUDA(cudaGetLastError());
   CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
-
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
-  }
-
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
-
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  CHECK_CUDA(cudaMemcpy(gpu.data(), dp, qn * sizeof(int), cudaMemcpyDeviceToHost));
+  bool ok = gpu == cpu;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(dd));
+  CHECK_CUDA(cudaFree(dq));
+  CHECK_CUDA(cudaFree(dp));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

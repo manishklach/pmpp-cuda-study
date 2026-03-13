@@ -1,12 +1,18 @@
 // Example 031: Gather
+
 // Track: Parallel Patterns
 // Difficulty: Intermediate
-// Status: Guided template
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
+#include <algorithm>
 #include <cmath>
+#include <cfloat>
+#include <climits>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
+#include <numeric>
 #include <vector>
 
 #define CHECK_CUDA(call)                                                                           \
@@ -19,75 +25,39 @@
     }                                                                                              \
   } while (0)
 
-// - Study focus: work decomposition
-// - Study focus: shared memory or atomics
-// - Study focus: validation before tuning
-
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
+__global__ void gather_kernel(const float *source, const int *indices, float *output, int n) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
-  }
+  if (idx < n)
+    output[idx] = source[indices[idx]];
 }
-
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
-
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
-}
-
 int main() {
-  std::cout << "Running 031" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+  const int n = 32;
+  std::vector<float> source(64), gpu(n, 0.0f), cpu(n, 0.0f);
+  std::vector<int> idxs(n);
+  for (int i = 0; i < 64; ++i)
+    source[i] = i * 1.5f;
+  for (int i = 0; i < n; ++i) {
+    idxs[i] = (i * 3) % 64;
+    cpu[i] = source[idxs[i]];
+  }
+  float *ds = nullptr, *do_ = nullptr;
+  int *di = nullptr;
+  CHECK_CUDA(cudaMalloc(&ds, 64 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&di, n * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&do_, n * sizeof(float)));
+  CHECK_CUDA(cudaMemcpy(ds, source.data(), 64 * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(di, idxs.data(), n * sizeof(int), cudaMemcpyHostToDevice));
+  gather_kernel<<<1, 128>>>(ds, di, do_, n);
   CHECK_CUDA(cudaGetLastError());
   CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
-
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
-  }
-
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
-
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  CHECK_CUDA(cudaMemcpy(gpu.data(), do_, n * sizeof(float), cudaMemcpyDeviceToHost));
+  bool ok = true;
+  for (int i = 0; i < n; ++i)
+    if (std::fabs(gpu[i] - cpu[i]) > 1e-5f)
+      ok = false;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(ds));
+  CHECK_CUDA(cudaFree(di));
+  CHECK_CUDA(cudaFree(do_));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

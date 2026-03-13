@@ -2,18 +2,18 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `021-040`
 
 ## Goal
 
-Study **L2 Norm** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Build and study a working CUDA implementation of **L2 Norm**.
 
 ## PMPP Ideas To Focus On
 
-- work decomposition
-- shared memory or atomics
-- validation before tuning
+- sum of squares
+- reduction reuse
+- host-side finalization
 
 ## Build
 
@@ -27,10 +27,12 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Validation
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The program prints `PASS` when GPU output matches the CPU reference.
+- These examples use intentionally small inputs so each pattern is easy to inspect first.
+
+## What To Modify Next
+
+- Compare norm and squared norm.
+- Try vectors with larger dynamic range.

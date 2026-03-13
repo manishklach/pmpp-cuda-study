@@ -2,18 +2,18 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `021-040`
 
 ## Goal
 
-Study **Top K Selection** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Build and study a working CUDA implementation of **Top K Selection**.
 
 ## PMPP Ideas To Focus On
 
-- work decomposition
-- shared memory or atomics
-- validation before tuning
+- selection versus full sort
+- partial ordering
+- GPU-assisted ranking
 
 ## Build
 
@@ -27,10 +27,12 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Validation
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The program prints `PASS` when GPU output matches the CPU reference.
+- These examples use intentionally small inputs so each pattern is easy to inspect first.
+
+## What To Modify Next
+
+- Change K and inspect output stability.
+- Replace full sort with iterative selection later.

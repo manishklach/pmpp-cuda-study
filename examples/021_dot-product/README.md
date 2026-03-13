@@ -2,18 +2,18 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `021-040`
 
 ## Goal
 
-Study **Dot Product** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Build and study a working CUDA implementation of **Dot Product**.
 
 ## PMPP Ideas To Focus On
 
-- work decomposition
-- shared memory or atomics
-- validation before tuning
+- map-reduce structure
+- block-level reduction
+- multi-pass accumulation
 
 ## Build
 
@@ -27,10 +27,12 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Validation
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The program prints `PASS` when GPU output matches the CPU reference.
+- These examples use intentionally small inputs so each pattern is easy to inspect first.
+
+## What To Modify Next
+
+- Increase vector size and inspect block count.
+- Swap to double precision for the CPU reference.
