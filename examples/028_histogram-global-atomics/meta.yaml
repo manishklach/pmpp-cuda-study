@@ -1,0 +1,12 @@
+number: 28
+slug: histogram-global-atomics
+title: Histogram Global Atomics
+module: parallel-patterns
+category: histogram
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+validation:
+  type: cpu_reference
+  tolerance: 0

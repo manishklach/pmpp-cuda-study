@@ -2,37 +2,45 @@
 
 - Track: `Foundations`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `001-020`
+- Status: `✅ fully mature`
+- Maturity: `Level 6 - polished teaching example`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Matrix Transpose With Shared Memory**.
+Transpose a matrix using a padded shared-memory tile and validate the result against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- shared memory tiles
-- synchronization
-- avoiding bank conflicts
+Transpose is one of the clearest ways to study memory layout. This version is especially useful because it shows how shared memory and padding help organize access cleanly.
+
+## CUDA Concepts Taught
+
+- 2D thread mapping
+- shared-memory tiling
+- padded tiles
+- transpose access patterns
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 64
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 256 --warmup 5 --iters 20
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference or expected pattern.
-- Start with the built-in small inputs before scaling up.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when the transposed GPU output matches the CPU reference.
 
-- Change tile size to 16 or 32.
-- Compare against the naive transpose.
+## Next Optimization Steps
+
+- compare with `019_matrix-transpose-naive`
+- study how tile padding affects shared-memory access behavior

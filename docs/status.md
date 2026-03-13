@@ -52,10 +52,17 @@ See [docs/maturity-model.md](maturity-model.md) for the repo-wide maturity ladde
 
 The strongest current maturity path is:
 
+- `020_matrix-transpose-with-shared-memory`
 - `002_vector-addition`
 - `007_saxpy`
 - `023_sum-reduction`
+- `024_max-reduction`
+- `025_min-reduction`
+- `028_histogram-global-atomics`
+- `029_histogram-shared-memory`
 - `042_naive-matrix-multiply`
 - `043_tiled-matrix-multiply`
 - `049_gaussian-blur`
+- `052_sparse-matrix-vector-multiply-csr`
 - `080_n-body-tiled`
+- `098_neural-network-forward-pass`

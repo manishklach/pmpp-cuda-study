@@ -2,33 +2,46 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Reference-friendly`
-- GitHub batch: `081-100`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Compute a small two-layer MLP forward pass with ReLU activation on the GPU.
+Run a small two-layer MLP forward pass on the GPU and validate both hidden activations and final outputs against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- dense linear algebra as batched neuron evaluation
-- activation functions as elementwise kernels
-- mapping model layers into simple CUDA stages
+This gives the repo a more trustworthy ML anchor. It links the earlier dense-kernel material to neural network inference without requiring large frameworks.
+
+## CUDA Concepts Taught
+
+- dense layer forward pass
+- activation functions
+- multi-kernel inference pipelines
+- CPU reference validation for ML kernels
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 32
 ```
 
-## Study Notes
+```powershell
+.\example.exe --bench --size 128 --warmup 5 --iters 20
+```
 
-- This is the simplest end-to-end neural network example in the repo.
-- The implementation favors readability over GEMM-level optimization.
-- A next step is batching multiple inputs or replacing the dense loops with cuBLAS.
+## Expected Output
+
+- Prints `PASS` when hidden and output activations match the CPU reference within tolerance.
+
+## Next Optimization Steps
+
+- batch multiple inputs
+- compare ReLU and non-ReLU variants
+- add softmax or layernorm as the next mature ML examples

@@ -1,0 +1,12 @@
+number: 29
+slug: histogram-shared-memory
+title: Histogram Shared Memory
+module: parallel-patterns
+category: histogram
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+validation:
+  type: cpu_reference
+  tolerance: 0

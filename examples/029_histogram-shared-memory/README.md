@@ -2,37 +2,44 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Histogram Shared Memory**.
+Build a histogram using per-block shared-memory accumulation before flushing bins globally.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- block-private bins
-- shared-memory aggregation
-- global merge
+This is the first real optimization step after the global-atomic baseline. It shows how privatization reduces contention while preserving correctness.
+
+## CUDA Concepts Taught
+
+- shared-memory privatization
+- reduced atomic contention
+- baseline vs optimized histogram thinking
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 65536
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 1048576 --warmup 5 --iters 20
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when the GPU bins match the CPU histogram exactly.
 
-- Increase bin count.
-- Stress-test skewed input distributions.
+## Next Optimization Steps
+
+- compare runtime directly against `028_histogram-global-atomics`
+- try skewed inputs to see contention effects more clearly

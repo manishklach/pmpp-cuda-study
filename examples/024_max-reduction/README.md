@@ -2,37 +2,52 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Max Reduction**.
+Reduce a float array to one maximum value on the GPU and validate it against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- identity values
-- parallel max
-- partial reductions
+This is a natural follow-up to sum reduction because the structure is almost identical while the operator changes. That makes it a clean way to reinforce reduction thinking.
+
+## CUDA Concepts Taught
+
+- shared-memory reduction
+- operator substitution in collective kernels
+- benchmark mode for reduction variants
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 65536 --block-size 256
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 1048576 --warmup 5 --iters 20 --block-size 256
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when the GPU maximum matches the CPU maximum.
 
-- Use random inputs with a known maximum.
-- Compare against Thrust later.
+## Correctness Notes
+
+- A known large value is injected into the input to make the expected maximum easy to reason about.
+
+## Likely Bottlenecks
+
+- the same synchronization and occupancy constraints as sum reduction
+
+## Next Optimization Steps
+
+- compare with warp-shuffle reduction
+- combine value and index into an argmax variant

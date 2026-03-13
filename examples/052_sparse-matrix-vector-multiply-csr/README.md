@@ -2,37 +2,44 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Advanced`
-- Status: `Reference-friendly`
-- GitHub batch: `041-060`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Sparse Matrix Vector Multiply CSR**.
+Multiply a sparse matrix in CSR format by a dense vector and validate the output against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- CSR layout
-- one-row-per-thread mapping
-- irregular memory access
+CSR SpMV is one of the most important sparse GPU kernels. It introduces irregular memory access and makes the repo’s linear-algebra path feel much more complete.
+
+## CUDA Concepts Taught
+
+- CSR traversal
+- row-parallel sparse kernels
+- sparse validation and benchmarking
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 128
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 4096 --warmup 5 --iters 20
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
-- Start with the included tiny matrices before scaling up.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when the GPU vector matches the CPU reference within tolerance.
 
-- Change sparsity patterns.
-- Compare against a dense fallback.
+## Next Optimization Steps
+
+- compare different sparse formats
+- experiment with row imbalance and larger nonzero counts

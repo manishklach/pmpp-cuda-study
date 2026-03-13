@@ -1,64 +1,123 @@
-// Example 025: Min Reduction
-
-// Track: Parallel Patterns
-// Difficulty: Intermediate
-// Status: Reference-friendly
-
 #include <cuda_runtime.h>
+
 #include <algorithm>
-#include <cmath>
 #include <cfloat>
-#include <climits>
 #include <cstdlib>
 #include <iostream>
-#include <limits>
-#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+#include "pmpp/benchmark.cuh"
+#include "pmpp/cli.cuh"
+#include "pmpp/compare.cuh"
+#include "pmpp/cuda_check.cuh"
+#include "pmpp/random_inputs.cuh"
+#include "pmpp/report.cuh"
+
+namespace {
+
+constexpr const char *kExampleName = "025_min-reduction";
+constexpr int kMaxThreads = 256;
 
 __global__ void min_partials_kernel(const float *input, float *partials, int n) {
-  __shared__ float scratch[256];
+  __shared__ float scratch[kMaxThreads];
   int global = blockIdx.x * blockDim.x + threadIdx.x;
   int local = threadIdx.x;
+
   scratch[local] = global < n ? input[global] : FLT_MAX;
   __syncthreads();
+
   for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
     if (local < stride)
       scratch[local] = fminf(scratch[local], scratch[local + stride]);
     __syncthreads();
   }
+
   if (local == 0)
     partials[blockIdx.x] = scratch[0];
 }
 
-int main() {
-  const int n = 2048, threads = 256, blocks = (n + threads - 1) / threads;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> input(n), partials(blocks, 0.0f);
-  for (int i = 0; i < n; ++i)
-    input[i] = static_cast<float>((i % 41) - 20);
-  input[333] = -999.0f;
-  float cpu = *std::min_element(input.begin(), input.end());
-  float *di = nullptr, *dp = nullptr;
-  CHECK_CUDA(cudaMalloc(&di, bytes));
-  CHECK_CUDA(cudaMalloc(&dp, blocks * sizeof(float)));
-  CHECK_CUDA(cudaMemcpy(di, input.data(), bytes, cudaMemcpyHostToDevice));
-  min_partials_kernel<<<blocks, threads>>>(di, dp, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(partials.data(), dp, blocks * sizeof(float), cudaMemcpyDeviceToHost));
-  float gpu = *std::min_element(partials.begin(), partials.end());
-  std::cout << "Validation: " << (std::fabs(cpu - gpu) < 1.0e-5f ? "PASS" : "FAIL") << std::endl;
-  CHECK_CUDA(cudaFree(di));
-  CHECK_CUDA(cudaFree(dp));
-  return std::fabs(cpu - gpu) < 1.0e-5f ? EXIT_SUCCESS : EXIT_FAILURE;
+double run_gpu_once(const std::vector<float> &input, int block_size) {
+  const int n = static_cast<int>(input.size());
+  const int blocks = (n + block_size - 1) / block_size;
+  const std::size_t input_bytes = static_cast<std::size_t>(n) * sizeof(float);
+  const std::size_t partial_bytes = static_cast<std::size_t>(blocks) * sizeof(float);
+  std::vector<float> partials(blocks, 0.0f);
+
+  float *device_input = nullptr;
+  float *device_partials = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_input, input_bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_partials, partial_bytes));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_input, input.data(), input_bytes, cudaMemcpyHostToDevice));
+
+  min_partials_kernel<<<blocks, block_size>>>(device_input, device_partials, n);
+  PMPP_CUDA_KERNEL_CHECK();
+  PMPP_CUDA_CHECK(
+      cudaMemcpy(partials.data(), device_partials, partial_bytes, cudaMemcpyDeviceToHost));
+
+  PMPP_CUDA_CHECK(cudaFree(device_input));
+  PMPP_CUDA_CHECK(cudaFree(device_partials));
+  return *std::min_element(partials.begin(), partials.end());
+}
+
+pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
+  std::vector<float> input = pmpp::make_uniform_floats(options.size, options.seed, -20.0f, 20.0f);
+  if (options.size > 3)
+    input[options.size / 4] = -999.0f;
+
+  const double cpu_min = *std::min_element(input.begin(), input.end());
+  const double gpu_min = run_gpu_once(input, options.block_size);
+
+  pmpp::ValidationSummary summary = pmpp::compare_scalars(cpu_min, gpu_min, 1.0e-5);
+  summary.notes = "This min reduction is a direct companion to the max and sum reduction examples.";
+  return summary;
+}
+
+pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
+  const int n = options.size;
+  const int blocks = (n + options.block_size - 1) / options.block_size;
+  const std::size_t input_bytes = static_cast<std::size_t>(n) * sizeof(float);
+  const std::size_t partial_bytes = static_cast<std::size_t>(blocks) * sizeof(float);
+  std::vector<float> input = pmpp::make_uniform_floats(n, options.seed, -20.0f, 20.0f);
+
+  float *device_input = nullptr;
+  float *device_partials = nullptr;
+  PMPP_CUDA_CHECK(cudaMalloc(&device_input, input_bytes));
+  PMPP_CUDA_CHECK(cudaMalloc(&device_partials, partial_bytes));
+  PMPP_CUDA_CHECK(cudaMemcpy(device_input, input.data(), input_bytes, cudaMemcpyHostToDevice));
+
+  pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
+    min_partials_kernel<<<blocks, options.block_size>>>(device_input, device_partials, n);
+    PMPP_CUDA_KERNEL_CHECK();
+  });
+  stats.bandwidth_gbps = pmpp::bandwidth_gbps(input_bytes + partial_bytes, stats.avg_ms);
+  stats.throughput = pmpp::elements_per_second(n, stats.avg_ms);
+
+  PMPP_CUDA_CHECK(cudaFree(device_input));
+  PMPP_CUDA_CHECK(cudaFree(device_partials));
+  return stats;
+}
+
+}  // namespace
+
+int main(int argc, char **argv) {
+  pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+  if (options.block_size > kMaxThreads)
+    options.block_size = kMaxThreads;
+
+  if (options.check) {
+    pmpp::ValidationSummary summary = run_check(options);
+    pmpp::print_validation_report(kExampleName, summary);
+    if (!summary.ok)
+      return EXIT_FAILURE;
+  }
+
+  if (options.bench) {
+    if (!options.verify)
+      std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
+    pmpp::BenchmarkStats stats = run_bench(options);
+    pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters,
+                                 "Elements/sec");
+  }
+
+  return EXIT_SUCCESS;
 }

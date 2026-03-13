@@ -2,37 +2,52 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Min Reduction**.
+Reduce a float array to one minimum value on the GPU and validate it against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- parallel min
-- sentinel initialization
-- result validation
+This completes the trio of basic reduction operators in the trusted core and reinforces that the collective structure matters more than the specific operator.
+
+## CUDA Concepts Taught
+
+- shared-memory reduction
+- reduction operator variants
+- CPU reference validation
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 65536 --block-size 256
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 1048576 --warmup 5 --iters 20 --block-size 256
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when the GPU minimum matches the CPU minimum.
 
-- Mix positive and negative values.
-- Add location tracking for the min index.
+## Correctness Notes
+
+- A known low outlier is injected into the input for easy reasoning.
+
+## Likely Bottlenecks
+
+- synchronization and memory traffic costs similar to the max-reduction kernel
+
+## Next Optimization Steps
+
+- compare max, min, and sum throughput under the same settings
+- promote to an argmin variant that tracks the index as well

@@ -52,6 +52,28 @@ inline ValidationSummary compare_vectors(const std::vector<int> &expected,
   return summary;
 }
 
+inline ValidationSummary compare_vectors(const std::vector<unsigned int> &expected,
+                                         const std::vector<unsigned int> &actual) {
+  ValidationSummary summary{};
+  if (expected.size() != actual.size()) {
+    summary.ok = false;
+    summary.mismatch_count = 1;
+    return summary;
+  }
+
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    const double error =
+        std::fabs(static_cast<double>(expected[i]) - static_cast<double>(actual[i]));
+    if (error > summary.max_abs_error)
+      summary.max_abs_error = error;
+    if (expected[i] != actual[i]) {
+      summary.ok = false;
+      ++summary.mismatch_count;
+    }
+  }
+  return summary;
+}
+
 inline bool within_tolerance(double expected, double actual, double tolerance) {
   return std::fabs(expected - actual) <= tolerance;
 }

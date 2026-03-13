@@ -2,37 +2,44 @@
 
 - Track: `Parallel Patterns`
 - Difficulty: `Intermediate`
-- Status: `Reference-friendly`
-- GitHub batch: `021-040`
+- Status: `🧪 verified`
+- Maturity: `Level 4 - benchmarkable`
 
 ## Goal
 
-Build and study a working CUDA implementation of **Histogram Global Atomics**.
+Build a histogram with direct global atomics and validate it against a CPU reference.
 
-## PMPP Ideas To Focus On
+## Why This Example Matters
 
-- global atomics
-- bin contention
-- input distributions
+This is the baseline irregular primitive for the histogram path. It is intentionally simple and contention-heavy, which makes it the right reference point for later privatized or shared-memory variants.
+
+## CUDA Concepts Taught
+
+- atomics
+- irregular writes
+- histogram validation
 
 ## Build
 
 ```powershell
-nvcc -std=c++17 -O2 main.cu -o example.exe
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
 ```
 
 ## Run
 
 ```powershell
-.\example.exe
+.\example.exe --check --size 65536
 ```
 
-## Validation
+```powershell
+.\example.exe --bench --size 1048576 --warmup 5 --iters 20
+```
 
-- The program prints `PASS` when GPU output matches the CPU reference.
-- These examples use intentionally small inputs so each pattern is easy to inspect first.
+## Expected Output
 
-## What To Modify Next
+- Prints `PASS` when the GPU bin counts match the CPU histogram.
 
-- Vary the number of bins.
-- Compare against the shared-memory version.
+## Next Optimization Steps
+
+- compare with `029_histogram-shared-memory`
+- vary the number of bins and input skew to study contention

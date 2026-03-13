@@ -1,0 +1,15 @@
+number: 24
+slug: max-reduction
+title: Max Reduction
+module: parallel-patterns
+category: reductions
+difficulty: intermediate
+status: verified
+maturity_level: 4
+
+description: >
+  Reduce a float array to its maximum value using shared-memory block reductions.
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-5

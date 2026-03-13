@@ -1,0 +1,12 @@
+number: 20
+slug: matrix-transpose-with-shared-memory
+title: Matrix Transpose With Shared Memory
+module: foundations
+category: matrix
+difficulty: intermediate
+status: fully_mature
+maturity_level: 6
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-6
