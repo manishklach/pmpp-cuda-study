@@ -1,19 +1,19 @@
 # 074 - Parallel Base64 Or Hex Encode
 
 - Track: `Image and Signal`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Parallel Base64 Or Hex Encode** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Implement the hex-encoding branch of a parallel text transform so each input byte expands independently into two output characters.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- one-to-many output mapping
+- lookup tables
+- simple encoding pipelines
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The example chooses hex because it is embarrassingly parallel and easy to validate.
+- The title leaves room for experimenting with a more involved base64 version later.
+- A next step is comparing global memory writes against vectorized stores.

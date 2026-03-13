@@ -2,18 +2,18 @@
 
 - Track: `Simulation`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Monte Carlo Option Pricing** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Estimate the price of a European call option with one Monte Carlo path per thread and compare it against a CPU path simulation using the same pseudo-random generator logic.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- parallel Monte Carlo paths
+- financial payoff aggregation
+- using Box-Muller normals without external libraries
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This stays self-contained by using a simple LCG and Box-Muller transform instead of CURAND.
+- For teaching, the option parameters are modest and the validation tolerance is practical rather than strict.
+- A next step is variance reduction or multi-step path simulation.

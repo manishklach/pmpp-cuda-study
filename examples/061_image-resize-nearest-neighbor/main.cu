@@ -1,93 +1,77 @@
 // Example 061: Image Resize Nearest Neighbor
 // Track: Image and Signal
-// Difficulty: Advanced
-// Status: Guided template
+// Difficulty: Intermediate
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
-
-// - Study focus: 2D or chunk indexing
-// - Study focus: boundary handling
-// - Study focus: pipeline composition
-
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 }
 
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
+__global__ void resize_nearest_kernel(const float *src, int src_width, int src_height, float *dst,
+                                      int dst_width, int dst_height) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+  if (x >= dst_width || y >= dst_height)
+    return;
+
+  float scale_x = static_cast<float>(src_width) / static_cast<float>(dst_width);
+  float scale_y = static_cast<float>(src_height) / static_cast<float>(dst_height);
+  int src_x = min(static_cast<int>(x * scale_x), src_width - 1);
+  int src_y = min(static_cast<int>(y * scale_y), src_height - 1);
+  dst[y * dst_width + x] = src[src_y * src_width + src_x];
 }
 
 int main() {
-  std::cout << "Running 061" << std::endl;
+  const int src_width = 6;
+  const int src_height = 4;
+  const int dst_width = 12;
+  const int dst_height = 8;
+  std::vector<float> src(src_width * src_height), cpu(dst_width * dst_height, 0.0f),
+      gpu(dst_width * dst_height, 0.0f);
+  for (int y = 0; y < src_height; ++y)
+    for (int x = 0; x < src_width; ++x)
+      src[y * src_width + x] = static_cast<float>(y * 10 + x);
+  for (int y = 0; y < dst_height; ++y)
+    for (int x = 0; x < dst_width; ++x) {
+      int src_x = std::min(static_cast<int>(x * (static_cast<float>(src_width) / dst_width)),
+                           src_width - 1);
+      int src_y = std::min(static_cast<int>(y * (static_cast<float>(src_height) / dst_height)),
+                           src_height - 1);
+      cpu[y * dst_width + x] = src[src_y * src_width + src_x];
+    }
 
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+  float *d_src = nullptr, *d_dst = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_src, src.size() * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&d_dst, gpu.size() * sizeof(float)));
+  CHECK_CUDA(cudaMemcpy(d_src, src.data(), src.size() * sizeof(float), cudaMemcpyHostToDevice));
+  dim3 threads(16, 16);
+  dim3 blocks((dst_width + threads.x - 1) / threads.x, (dst_height + threads.y - 1) / threads.y);
+  resize_nearest_kernel<<<blocks, threads>>>(d_src, src_width, src_height, d_dst, dst_width,
+                                             dst_height);
   CHECK_CUDA(cudaGetLastError());
   CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(gpu.data(), d_dst, gpu.size() * sizeof(float), cudaMemcpyDeviceToHost));
 
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
-  }
-
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
-
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  bool ok = true;
+  for (std::size_t i = 0; i < gpu.size(); ++i)
+    if (std::fabs(cpu[i] - gpu[i]) > 1.0e-6f)
+      ok = false;
+  std::cout << "Output size: " << dst_width << "x" << dst_height << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(d_src));
+  CHECK_CUDA(cudaFree(d_dst));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

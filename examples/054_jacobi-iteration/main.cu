@@ -1,93 +1,78 @@
 // Example 054: Jacobi Iteration
-// Track: Linear Algebra
 // Difficulty: Advanced
-// Status: Guided template
+
+// Track: Linear Algebra
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
+#include <algorithm>
 #include <cmath>
+#include <cfloat>
+#include <climits>
 #include <cstdlib>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
+#define CHECK_CUDA(call)                                                                       \
+  do {                                                                                         \
+    cudaError_t status__ = (call);                                                             \
+    if (status__ != cudaSuccess) {                                                             \
+      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":" \
+                << __LINE__ << std::endl;                                                      \
+      std::exit(EXIT_FAILURE);                                                                 \
+    }                                                                                          \
   } while (0)
 
-// - Study focus: data layout
-// - Study focus: memory reuse
-// - Study focus: correctness against a CPU reference
-
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+__global__ void jacobi_step_kernel(const float *a, const float *b, const float *x_old, float *x_new,
+                                   int n) {
+  int row = blockIdx.x * blockDim.x + threadIdx.x;
+  if (row < n) {
+    float sigma = 0.0f;
+    for (int col = 0; col < n; ++col)
+      if (col != row)
+        sigma += a[row * n + col] * x_old[col];
+    x_new[row] = (b[row] - sigma) / a[row * n + row];
   }
 }
-
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
-
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
-}
-
 int main() {
-  std::cout << "Running 054" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
-
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
+  const int n = 4, iters = 10;
+  std::vector<float> a = {10, -1, 2, 0, -1, 11, -1, 3, 2, -1, 10, -1, 0, 3, -1, 8},
+                     b = {6, 25, -11, 15}, x(n, 0.0f), next(n, 0.0f), cpu(n, 0.0f),
+                     cpu_next(n, 0.0f), gpu(n, 0.0f);
+  for (int it = 0; it < iters; ++it) {
+    for (int r = 0; r < n; ++r) {
+      float sigma = 0.0f;
+      for (int c = 0; c < n; ++c)
+        if (c != r)
+          sigma += a[r * n + c] * cpu[c];
+      cpu_next[r] = (b[r] - sigma) / a[r * n + r];
     }
+    cpu = cpu_next;
   }
-
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
-
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  float *da = nullptr, *db = nullptr, *dx = nullptr, *dn = nullptr;
+  CHECK_CUDA(cudaMalloc(&da, a.size() * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&db, b.size() * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&dx, x.size() * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&dn, next.size() * sizeof(float)));
+  CHECK_CUDA(cudaMemcpy(da, a.data(), a.size() * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(db, b.data(), b.size() * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(dx, x.data(), x.size() * sizeof(float), cudaMemcpyHostToDevice));
+  for (int it = 0; it < iters; ++it) {
+    jacobi_step_kernel<<<1, 64>>>(da, db, dx, dn, n);
+    CHECK_CUDA(cudaGetLastError());
+    CHECK_CUDA(cudaDeviceSynchronize());
+    std::swap(dx, dn);
+  }
+  CHECK_CUDA(cudaMemcpy(gpu.data(), dx, gpu.size() * sizeof(float), cudaMemcpyDeviceToHost));
+  bool ok = true;
+  for (int i = 0; i < n; ++i)
+    if (std::fabs(gpu[i] - cpu[i]) > 1e-3f)
+      ok = false;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(da));
+  CHECK_CUDA(cudaFree(db));
+  CHECK_CUDA(cudaFree(dx));
+  CHECK_CUDA(cudaFree(dn));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

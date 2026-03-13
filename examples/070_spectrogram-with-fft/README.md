@@ -2,18 +2,18 @@
 
 - Track: `Image and Signal`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Spectrogram With FFT** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Compute a small spectrogram using a direct DFT per time window so the workflow is visible even without cuFFT.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- windowed signal analysis
+- 2D output layout of time bins by frequency bins
+- trading performance for transparency in a study example
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This example intentionally uses a naive DFT instead of cuFFT so it stays self-contained.
+- Each block handles one time window and each thread computes one frequency bin.
+- A natural follow-up is replacing the inner DFT with cuFFT plans when a toolkit is available.

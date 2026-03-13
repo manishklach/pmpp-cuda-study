@@ -2,18 +2,18 @@
 
 - Track: `Simulation`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Lennard Jones Forces** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Compute pairwise Lennard-Jones forces on a tiny particle system and compare GPU results against a CPU reference.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- all-pairs interactions
+- nonlinear force laws
+- numerical stability via distance clamping
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a close cousin of the N-body examples, but with a short-range molecular dynamics force law.
+- Small deterministic particle sets make validation much easier.
+- A next step is truncating the force with a cutoff radius or introducing cell lists.

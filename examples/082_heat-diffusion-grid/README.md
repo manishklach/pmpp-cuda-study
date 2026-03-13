@@ -1,19 +1,19 @@
 # 082 - Heat Diffusion Grid
 
 - Track: `Simulation`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Heat Diffusion Grid** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Apply one explicit heat-diffusion update to a 2D grid with fixed boundary handling.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- 2D stencil updates
+- Jacobi-style time stepping
+- separating old and new state buffers
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is one of the canonical stencil-based GPU workloads.
+- The example performs a single step to keep validation easy.
+- A next step is looping over many iterations and visualizing the temperature field.

@@ -1,93 +1,92 @@
 // Example 063: Template Matching
 // Track: Image and Signal
-// Difficulty: Advanced
-// Status: Guided template
+// Difficulty: Intermediate
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
-
-// - Study focus: 2D or chunk indexing
-// - Study focus: boundary handling
-// - Study focus: pipeline composition
-
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 }
 
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
+__global__ void ssd_template_kernel(const float *image, int width, int height, const float *templ,
+                                    int templ_width, int templ_height, float *scores, int out_width,
+                                    int out_height) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+  if (x >= out_width || y >= out_height)
+    return;
+  float ssd = 0.0f;
+  for (int ty = 0; ty < templ_height; ++ty)
+    for (int tx = 0; tx < templ_width; ++tx) {
+      float diff = image[(y + ty) * width + (x + tx)] - templ[ty * templ_width + tx];
+      ssd += diff * diff;
+    }
+  scores[y * out_width + x] = ssd;
 }
 
 int main() {
-  std::cout << "Running 063" << std::endl;
+  const int width = 8, height = 8, templ_width = 3, templ_height = 3;
+  const int out_width = width - templ_width + 1, out_height = height - templ_height + 1;
+  std::vector<float> image(width * height, 0.0f);
+  for (int y = 0; y < height; ++y)
+    for (int x = 0; x < width; ++x)
+      image[y * width + x] = static_cast<float>((x + 2 * y) % 9);
+  std::vector<float> templ = {4.0f, 5.0f, 6.0f, 6.0f, 7.0f, 8.0f, 8.0f, 0.0f, 1.0f};
+  for (int ty = 0; ty < templ_height; ++ty)
+    for (int tx = 0; tx < templ_width; ++tx)
+      image[(3 + ty) * width + (2 + tx)] = templ[ty * templ_width + tx];
 
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
+  std::vector<float> cpu(out_width * out_height, 0.0f), gpu(out_width * out_height, 0.0f);
+  for (int y = 0; y < out_height; ++y)
+    for (int x = 0; x < out_width; ++x) {
+      float ssd = 0.0f;
+      for (int ty = 0; ty < templ_height; ++ty)
+        for (int tx = 0; tx < templ_width; ++tx) {
+          float diff = image[(y + ty) * width + (x + tx)] - templ[ty * templ_width + tx];
+          ssd += diff * diff;
+        }
+      cpu[y * out_width + x] = ssd;
+    }
 
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+  float *d_image = nullptr, *d_templ = nullptr, *d_scores = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_image, image.size() * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&d_templ, templ.size() * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&d_scores, gpu.size() * sizeof(float)));
+  CHECK_CUDA(
+      cudaMemcpy(d_image, image.data(), image.size() * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK_CUDA(
+      cudaMemcpy(d_templ, templ.data(), templ.size() * sizeof(float), cudaMemcpyHostToDevice));
+  dim3 threads(16, 16);
+  dim3 blocks((out_width + threads.x - 1) / threads.x, (out_height + threads.y - 1) / threads.y);
+  ssd_template_kernel<<<blocks, threads>>>(d_image, width, height, d_templ, templ_width,
+                                           templ_height, d_scores, out_width, out_height);
   CHECK_CUDA(cudaGetLastError());
   CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(gpu.data(), d_scores, gpu.size() * sizeof(float), cudaMemcpyDeviceToHost));
 
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
-  }
-
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
-
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  bool ok = true;
+  for (std::size_t i = 0; i < gpu.size(); ++i)
+    if (std::fabs(cpu[i] - gpu[i]) > 1.0e-5f)
+      ok = false;
+  auto best_it = std::min_element(gpu.begin(), gpu.end());
+  int best_index = static_cast<int>(best_it - gpu.begin());
+  std::cout << "Best match at: (" << (best_index % out_width) << ", " << (best_index / out_width)
+            << ")" << std::endl;
+  std::cout << "Validation: " << (ok && *best_it == 0.0f ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(d_image));
+  CHECK_CUDA(cudaFree(d_templ));
+  CHECK_CUDA(cudaFree(d_scores));
+  return ok && *best_it == 0.0f ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

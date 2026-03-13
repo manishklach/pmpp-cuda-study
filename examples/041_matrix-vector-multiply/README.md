@@ -2,18 +2,18 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Intermediate`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `041-060`
 
 ## Goal
 
-Study **Matrix Vector Multiply** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Build and study a working CUDA implementation of **Matrix Vector Multiply**.
 
 ## PMPP Ideas To Focus On
 
-- data layout
-- memory reuse
-- correctness against a CPU reference
+- row-wise decomposition
+- dense GEMV baseline
+- CPU reference checks
 
 ## Build
 
@@ -27,10 +27,12 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Validation
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
+- Start with the included tiny matrices before scaling up.
+
+## What To Modify Next
+
+- Try rectangular matrices.
+- Use shared memory for the vector later.

@@ -1,19 +1,19 @@
 # 085 - Game Of Life
 
 - Track: `Simulation`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Game Of Life** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Apply one Conway's Game of Life update on a small toroidal grid.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- neighborhood population counts
+- double-buffered cellular automata updates
+- branch-heavy per-cell rules
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- Cellular automata are a great fit for one-thread-per-cell mappings.
+- Toroidal wrapping keeps the example compact by avoiding edge-condition branches.
+- A next step is visualizing multiple generations or experimenting with alternative rulesets.

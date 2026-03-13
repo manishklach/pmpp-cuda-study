@@ -1,93 +1,86 @@
 // Example 077: Monte Carlo Option Pricing
 // Track: Simulation
 // Difficulty: Advanced
-// Status: Guided template
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
 
-// - Study focus: state updates
-// - Study focus: time stepping or sampling
-// - Study focus: numerical checks
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
+constexpr float kPi = 3.14159265358979323846f;
+
+__device__ __host__ unsigned int lcg_step(unsigned int state) {
+  return 1664525u * state + 1013904223u;
+}
+
+__device__ __host__ float uniform_host_device(unsigned int &state) {
+  state = lcg_step(state);
+  return ((state >> 8) & 0x00FFFFFF) / static_cast<float>(0x01000000);
+}
+
+__device__ __host__ float standard_normal(unsigned int &state) {
+  float u1 = fmaxf(uniform_host_device(state), 1.0e-7f);
+  float u2 = uniform_host_device(state);
+  return sqrtf(-2.0f * logf(u1)) * cosf(2.0f * kPi * u2);
+}
+
+__global__ void option_pricing_kernel(float *payoffs, int paths, float s0, float strike, float rate,
+                                      float sigma, float maturity) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
-  }
-}
-
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
-
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
+  if (idx >= paths)
+    return;
+  unsigned int state = 987654321u + 104729u * static_cast<unsigned int>(idx);
+  float z = standard_normal(state);
+  float drift = (rate - 0.5f * sigma * sigma) * maturity;
+  float diffusion = sigma * sqrtf(maturity) * z;
+  float st = s0 * expf(drift + diffusion);
+  payoffs[idx] = fmaxf(st - strike, 0.0f);
 }
 
 int main() {
-  std::cout << "Running 077" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
-
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
+  const int paths = 16384;
+  const float s0 = 100.0f, strike = 105.0f, rate = 0.03f, sigma = 0.2f, maturity = 1.0f;
+  std::vector<float> gpu_payoffs(paths, 0.0f), cpu_payoffs(paths, 0.0f);
+  for (int i = 0; i < paths; ++i) {
+    unsigned int state = 987654321u + 104729u * static_cast<unsigned int>(i);
+    float u1 = std::max(uniform_host_device(state), 1.0e-7f);
+    float u2 = uniform_host_device(state);
+    float z = std::sqrt(-2.0f * std::log(u1)) * std::cos(2.0f * kPi * u2);
+    float drift = (rate - 0.5f * sigma * sigma) * maturity;
+    float diffusion = sigma * std::sqrt(maturity) * z;
+    float st = s0 * std::exp(drift + diffusion);
+    cpu_payoffs[i] = std::max(st - strike, 0.0f);
   }
 
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
+  float *d_payoffs = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_payoffs, paths * sizeof(float)));
+  option_pricing_kernel<<<(paths + 255) / 256, 256>>>(d_payoffs, paths, s0, strike, rate, sigma,
+                                                      maturity);
+  CHECK_CUDA(cudaGetLastError());
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(
+      cudaMemcpy(gpu_payoffs.data(), d_payoffs, paths * sizeof(float), cudaMemcpyDeviceToHost));
 
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  double cpu_price = std::accumulate(cpu_payoffs.begin(), cpu_payoffs.end(), 0.0) / paths;
+  double gpu_price = std::accumulate(gpu_payoffs.begin(), gpu_payoffs.end(), 0.0) / paths;
+  cpu_price *= std::exp(-rate * maturity);
+  gpu_price *= std::exp(-rate * maturity);
+  bool ok = std::fabs(cpu_price - gpu_price) < 1.0e-3;
+  std::cout << "Option price estimate: " << gpu_price << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(d_payoffs));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

@@ -1,93 +1,117 @@
 // Example 091: Parallel BFS
 // Track: Graph and ML
 // Difficulty: Advanced
-// Status: Guided template
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <queue>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
 
-// - Study focus: irregular parallelism
-// - Study focus: iteration strategy
-// - Study focus: scalability planning
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
+__global__ void bfs_expand_kernel(const int *offsets, const int *edges, const int *frontier,
+                                  int frontier_size, int *next_frontier, int *next_size,
+                                  int *visited, int *distance, int level) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
-  }
-}
-
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
-
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
+  if (idx >= frontier_size)
+    return;
+  int node = frontier[idx];
+  for (int e = offsets[node]; e < offsets[node + 1]; ++e) {
+    int neighbor = edges[e];
+    if (atomicCAS(&visited[neighbor], 0, 1) == 0) {
+      distance[neighbor] = level + 1;
+      int slot = atomicAdd(next_size, 1);
+      next_frontier[slot] = neighbor;
+    }
   }
 }
 
 int main() {
-  std::cout << "Running 091" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
-
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
+  std::vector<int> offsets = {0, 2, 4, 6, 7, 8, 8};
+  std::vector<int> edges = {1, 2, 0, 3, 0, 4, 5, 5};
+  const int nodes = static_cast<int>(offsets.size()) - 1;
+  std::vector<int> cpu_distance(nodes, -1), gpu_distance(nodes, -1);
+  std::queue<int> q;
+  q.push(0);
+  cpu_distance[0] = 0;
+  while (!q.empty()) {
+    int node = q.front();
+    q.pop();
+    for (int e = offsets[node]; e < offsets[node + 1]; ++e) {
+      int neighbor = edges[e];
+      if (cpu_distance[neighbor] == -1) {
+        cpu_distance[neighbor] = cpu_distance[node] + 1;
+        q.push(neighbor);
+      }
     }
   }
 
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
+  int *d_offsets = nullptr, *d_edges = nullptr, *d_frontier = nullptr, *d_next_frontier = nullptr;
+  int *d_next_size = nullptr, *d_visited = nullptr, *d_distance = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_offsets, offsets.size() * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_edges, edges.size() * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_frontier, nodes * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_next_frontier, nodes * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_next_size, sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_visited, nodes * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_distance, nodes * sizeof(int)));
+  CHECK_CUDA(
+      cudaMemcpy(d_offsets, offsets.data(), offsets.size() * sizeof(int), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(d_edges, edges.data(), edges.size() * sizeof(int), cudaMemcpyHostToDevice));
+  std::vector<int> visited(nodes, 0);
+  visited[0] = 1;
+  gpu_distance[0] = 0;
+  CHECK_CUDA(cudaMemcpy(d_visited, visited.data(), nodes * sizeof(int), cudaMemcpyHostToDevice));
+  CHECK_CUDA(
+      cudaMemcpy(d_distance, gpu_distance.data(), nodes * sizeof(int), cudaMemcpyHostToDevice));
 
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  std::vector<int> frontier = {0}, next_frontier(nodes, 0);
+  int level = 0;
+  while (!frontier.empty()) {
+    int frontier_size = static_cast<int>(frontier.size());
+    int next_size = 0;
+    CHECK_CUDA(cudaMemcpy(d_frontier, frontier.data(), frontier_size * sizeof(int),
+                          cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemset(d_next_size, 0, sizeof(int)));
+    bfs_expand_kernel<<<(frontier_size + 255) / 256, 256>>>(
+        d_offsets, d_edges, d_frontier, frontier_size, d_next_frontier, d_next_size, d_visited,
+        d_distance, level);
+    CHECK_CUDA(cudaGetLastError());
+    CHECK_CUDA(cudaDeviceSynchronize());
+    CHECK_CUDA(cudaMemcpy(&next_size, d_next_size, sizeof(int), cudaMemcpyDeviceToHost));
+    frontier.assign(next_size, 0);
+    if (next_size > 0)
+      CHECK_CUDA(cudaMemcpy(frontier.data(), d_next_frontier, next_size * sizeof(int),
+                            cudaMemcpyDeviceToHost));
+    ++level;
+  }
+  CHECK_CUDA(
+      cudaMemcpy(gpu_distance.data(), d_distance, nodes * sizeof(int), cudaMemcpyDeviceToHost));
+
+  bool ok = cpu_distance == gpu_distance;
+  std::cout << "Distances:";
+  for (int value : gpu_distance)
+    std::cout << " " << value;
+  std::cout << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(d_offsets));
+  CHECK_CUDA(cudaFree(d_edges));
+  CHECK_CUDA(cudaFree(d_frontier));
+  CHECK_CUDA(cudaFree(d_next_frontier));
+  CHECK_CUDA(cudaFree(d_next_size));
+  CHECK_CUDA(cudaFree(d_visited));
+  CHECK_CUDA(cudaFree(d_distance));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

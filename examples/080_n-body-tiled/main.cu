@@ -1,7 +1,7 @@
 // Example 080: N Body Tiled
 // Track: Simulation
 // Difficulty: Advanced
-// Status: Guided template
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
 #include <cmath>
@@ -9,85 +9,94 @@
 #include <iostream>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
-
-// - Study focus: state updates
-// - Study focus: time stepping or sampling
-// - Study focus: numerical checks
-
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 }
 
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
+struct Vec3 {
+  float x;
+  float y;
+  float z;
+};
+
+__global__ void nbody_tiled_kernel(const Vec3 *positions, Vec3 *accelerations, int n,
+                                   float softening) {
+  __shared__ Vec3 tile[64];
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= n)
+    return;
+  Vec3 pi = positions[i];
+  Vec3 acc = {0.0f, 0.0f, 0.0f};
+  int tiles = (n + blockDim.x - 1) / blockDim.x;
+  for (int tile_idx = 0; tile_idx < tiles; ++tile_idx) {
+    int j = tile_idx * blockDim.x + threadIdx.x;
+    tile[threadIdx.x] = j < n ? positions[j] : Vec3{0.0f, 0.0f, 0.0f};
+    __syncthreads();
+    int limit = min(blockDim.x, n - tile_idx * blockDim.x);
+    for (int k = 0; k < limit; ++k) {
+      int global_j = tile_idx * blockDim.x + k;
+      if (global_j == i)
+        continue;
+      float dx = tile[k].x - pi.x, dy = tile[k].y - pi.y, dz = tile[k].z - pi.z;
+      float dist2 = dx * dx + dy * dy + dz * dz + softening;
+      float inv = rsqrtf(dist2);
+      float inv3 = inv * inv * inv;
+      acc.x += dx * inv3;
+      acc.y += dy * inv3;
+      acc.z += dz * inv3;
+    }
+    __syncthreads();
   }
+  accelerations[i] = acc;
 }
 
 int main() {
-  std::cout << "Running 080" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
-
-  int mismatches = 0;
+  const int n = 32;
+  const float softening = 1.0e-3f;
+  std::vector<Vec3> positions(n), cpu(n), gpu(n);
+  for (int i = 0; i < n; ++i)
+    positions[i] = {0.03f * i, 0.07f * (i % 7), 0.05f * (i % 4)};
   for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
+    Vec3 acc = {0.0f, 0.0f, 0.0f};
+    for (int j = 0; j < n; ++j) {
+      if (i == j)
+        continue;
+      float dx = positions[j].x - positions[i].x, dy = positions[j].y - positions[i].y,
+            dz = positions[j].z - positions[i].z;
+      float dist2 = dx * dx + dy * dy + dz * dz + softening;
+      float inv = 1.0f / std::sqrt(dist2);
+      float inv3 = inv * inv * inv;
+      acc.x += dx * inv3;
+      acc.y += dy * inv3;
+      acc.z += dz * inv3;
     }
+    cpu[i] = acc;
   }
 
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
+  Vec3 *d_positions = nullptr, *d_acc = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_positions, n * sizeof(Vec3)));
+  CHECK_CUDA(cudaMalloc(&d_acc, n * sizeof(Vec3)));
+  CHECK_CUDA(cudaMemcpy(d_positions, positions.data(), n * sizeof(Vec3), cudaMemcpyHostToDevice));
+  nbody_tiled_kernel<<<1, 32>>>(d_positions, d_acc, n, softening);
+  CHECK_CUDA(cudaGetLastError());
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaMemcpy(gpu.data(), d_acc, n * sizeof(Vec3), cudaMemcpyDeviceToHost));
 
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  bool ok = true;
+  for (int i = 0; i < n; ++i)
+    if (std::fabs(cpu[i].x - gpu[i].x) > 1.0e-3f || std::fabs(cpu[i].y - gpu[i].y) > 1.0e-3f ||
+        std::fabs(cpu[i].z - gpu[i].z) > 1.0e-3f)
+      ok = false;
+  std::cout << "Particle 0 acceleration: (" << gpu[0].x << ", " << gpu[0].y << ", " << gpu[0].z
+            << ")" << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(d_positions));
+  CHECK_CUDA(cudaFree(d_acc));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

@@ -1,19 +1,19 @@
 # 087 - Mandelbrot Renderer
 
 - Track: `Simulation`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Mandelbrot Renderer** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Render a small Mandelbrot iteration-count image on the GPU.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- mapping pixels to complex-plane coordinates
+- independent escape-time evaluation
+- image generation with one thread per pixel
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- Fractal renderers are nice examples because every pixel is independent.
+- Integer iteration counts give an easy CPU/GPU validation target.
+- A next step is adding color mapping or supersampling.

@@ -2,18 +2,18 @@
 
 - Track: `Linear Algebra`
 - Difficulty: `Intermediate`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `041-060`
 
 ## Goal
 
-Study **Convolution 1D** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Build and study a working CUDA implementation of **Convolution 1D**.
 
 ## PMPP Ideas To Focus On
 
-- data layout
-- memory reuse
-- correctness against a CPU reference
+- windowed access
+- kernel radius
+- boundary handling
 
 ## Build
 
@@ -27,10 +27,12 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Validation
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The program prints `PASS` when GPU output matches the CPU reference or stays within tolerance.
+- Start with the included tiny matrices before scaling up.
+
+## What To Modify Next
+
+- Use a wider filter.
+- Move coefficients to constant memory later.

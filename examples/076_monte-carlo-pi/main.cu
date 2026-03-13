@@ -1,7 +1,7 @@
 // Example 076: Monte Carlo Pi
 // Track: Simulation
-// Difficulty: Advanced
-// Status: Guided template
+// Difficulty: Intermediate
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
 #include <cmath>
@@ -9,85 +9,56 @@
 #include <iostream>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
 
-// - Study focus: state updates
-// - Study focus: time stepping or sampling
-// - Study focus: numerical checks
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
+__device__ unsigned int lcg_next(unsigned int &state) {
+  state = 1664525u * state + 1013904223u;
+  return state;
+}
+
+__device__ float uniform01(unsigned int &state) {
+  return (lcg_next(state) & 0x00FFFFFF) / static_cast<float>(0x01000000);
+}
+
+__global__ void monte_carlo_pi_kernel(int trials_per_thread, int *hits) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+  unsigned int state = 1234567u + 747796405u * static_cast<unsigned int>(idx);
+  int local_hits = 0;
+  for (int i = 0; i < trials_per_thread; ++i) {
+    float x = uniform01(state);
+    float y = uniform01(state);
+    if (x * x + y * y <= 1.0f)
+      ++local_hits;
   }
-}
-
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
-
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
+  hits[idx] = local_hits;
 }
 
 int main() {
-  std::cout << "Running 076" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+  const int threads = 256, blocks = 32, total_threads = threads * blocks, trials_per_thread = 1024;
+  std::vector<int> hits(total_threads, 0);
+  int *d_hits = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_hits, total_threads * sizeof(int)));
+  monte_carlo_pi_kernel<<<blocks, threads>>>(trials_per_thread, d_hits);
   CHECK_CUDA(cudaGetLastError());
   CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(hits.data(), d_hits, total_threads * sizeof(int), cudaMemcpyDeviceToHost));
 
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
-  }
-
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
-
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  long long total_hits = 0;
+  for (int value : hits)
+    total_hits += value;
+  long long total_trials = static_cast<long long>(total_threads) * trials_per_thread;
+  double estimate = 4.0 * static_cast<double>(total_hits) / static_cast<double>(total_trials);
+  bool ok = std::fabs(estimate - 3.141592653589793) < 0.05;
+  std::cout << "Pi estimate: " << estimate << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "CHECK SAMPLE COUNT") << std::endl;
+  CHECK_CUDA(cudaFree(d_hits));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

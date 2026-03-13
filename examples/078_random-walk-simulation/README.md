@@ -1,19 +1,19 @@
 # 078 - Random Walk Simulation
 
 - Track: `Simulation`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Random Walk Simulation** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Simulate many independent 1D random walkers in parallel and collect their final positions.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- independent trajectories
+- simple random branching
+- thread-private state
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- Each walker takes the same number of steps, which makes the work decomposition clean.
+- The average final position should stay close to zero.
+- A next step is storing intermediate paths or moving to 2D walkers.

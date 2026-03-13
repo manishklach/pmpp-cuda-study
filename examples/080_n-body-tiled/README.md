@@ -2,18 +2,18 @@
 
 - Track: `Simulation`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **N Body Tiled** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Reuse particle positions through shared-memory tiling to reduce global memory traffic in the N-body force computation.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- shared-memory tiles
+- all-pairs interaction reuse
+- performance-minded evolution of example 079
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The correctness target is the same acceleration field as the naive version.
+- This is one of the classic PMPP shared-memory examples.
+- A next step is adding velocity integration and measuring speedup over the naive kernel.

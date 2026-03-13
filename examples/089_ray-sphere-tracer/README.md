@@ -2,18 +2,18 @@
 
 - Track: `Simulation`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Ray Sphere Tracer** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Trace one primary ray per pixel against a sphere and output a simple Lambertian shading value.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- one-thread-per-pixel ray generation
+- geometric intersection tests
+- image-space validation with a tiny deterministic scene
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a compact stepping stone toward path tracing.
+- Keeping the scene to one sphere makes the math easy to inspect.
+- A next step is adding a ground plane or shadows.

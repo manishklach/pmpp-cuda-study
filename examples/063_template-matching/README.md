@@ -1,19 +1,19 @@
 # 063 - Template Matching
 
 - Track: `Image and Signal`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Template Matching** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Compute a simple sum-of-squared-differences score map for a template over a small image and find the best match.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- 2D output grids
+- sliding window access patterns
+- small-kernel correctness before optimization
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The kernel writes one score per valid template location.
+- This version favors readability over shared-memory tiling.
+- You can extend it with normalized cross-correlation or texture-backed reads later.

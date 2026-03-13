@@ -1,93 +1,56 @@
 // Example 078: Random Walk Simulation
 // Track: Simulation
-// Difficulty: Advanced
-// Status: Guided template
+// Difficulty: Intermediate
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
 
-// - Study focus: state updates
-// - Study focus: time stepping or sampling
-// - Study focus: numerical checks
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
+__device__ unsigned int lcg_walk(unsigned int &state) {
+  state = 1664525u * state + 1013904223u;
+  return state;
+}
+
+__global__ void random_walk_kernel(int *positions, int walkers, int steps) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
-  }
-}
-
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
-
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
+  if (idx >= walkers)
+    return;
+  unsigned int state = 13579u + 17u * static_cast<unsigned int>(idx);
+  int position = 0;
+  for (int step = 0; step < steps; ++step)
+    position += (lcg_walk(state) & 1u) ? 1 : -1;
+  positions[idx] = position;
 }
 
 int main() {
-  std::cout << "Running 078" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+  const int walkers = 4096, steps = 256;
+  std::vector<int> positions(walkers, 0);
+  int *d_positions = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_positions, walkers * sizeof(int)));
+  random_walk_kernel<<<(walkers + 255) / 256, 256>>>(d_positions, walkers, steps);
   CHECK_CUDA(cudaGetLastError());
   CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
+  CHECK_CUDA(
+      cudaMemcpy(positions.data(), d_positions, walkers * sizeof(int), cudaMemcpyDeviceToHost));
 
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
-  }
-
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
-
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  double mean = std::accumulate(positions.begin(), positions.end(), 0.0) / walkers;
+  bool ok = std::fabs(mean) < 8.0;
+  std::cout << "Mean final position: " << mean << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "CHECK RNG SAMPLE SIZE") << std::endl;
+  CHECK_CUDA(cudaFree(d_positions));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

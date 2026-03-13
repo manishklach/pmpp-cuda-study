@@ -2,18 +2,18 @@
 
 - Track: `Image and Signal`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Canny Pipeline Stages** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Walk through a simplified Canny-style pipeline with three kernels: blur, gradient magnitude, and thresholding.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- kernel chaining
+- intermediate buffers
+- decomposing a larger algorithm into easy-to-test stages
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a teaching-oriented subset of Canny, not a full implementation with hysteresis and direction-aware suppression.
+- The three-stage structure is the main PMPP idea here.
+- A next step is integrating example 064 as a suppression stage and adding edge tracking.

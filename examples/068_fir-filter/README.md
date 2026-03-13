@@ -1,19 +1,19 @@
 # 068 - FIR Filter
 
 - Track: `Image and Signal`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **FIR Filter** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Apply a short finite impulse response filter to a 1D signal using one output thread per sample.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- convolution windows
+- causal tap application
+- small constant-size kernels
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This example uses a simple low-pass style tap set.
+- The implementation is intentionally direct so the tap indexing is obvious.
+- A next optimization is storing the coefficients in constant memory.

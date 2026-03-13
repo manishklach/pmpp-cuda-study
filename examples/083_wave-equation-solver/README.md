@@ -2,18 +2,18 @@
 
 - Track: `Simulation`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Wave Equation Solver** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Advance a 1D wave equation by one explicit time step using previous, current, and next state buffers.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- multi-buffer time stepping
+- second-order stencil updates
+- fixed-end boundary conditions
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- The three-buffer pattern appears in many simulation codes.
+- One spatial dimension keeps the indexing compact while still showing the core idea.
+- A next step is expanding to 2D wave propagation and multiple iterations.

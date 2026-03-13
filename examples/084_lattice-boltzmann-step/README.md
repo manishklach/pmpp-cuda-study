@@ -2,18 +2,18 @@
 
 - Track: `Simulation`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Lattice Boltzmann Step** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Run a simplified D2Q9 collide-and-stream step on a tiny periodic grid.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- multiple populations per cell
+- local collision plus neighbor streaming
+- structured-grid data layout
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a teaching-friendly single-step version of a common fluid simulation pattern.
+- The example keeps periodic boundaries to avoid extra boundary-condition code.
+- A next step is adding macroscopic density and velocity reconstruction.

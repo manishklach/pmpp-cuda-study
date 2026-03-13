@@ -1,19 +1,19 @@
 # 064 - Non Maximum Suppression
 
 - Track: `Image and Signal`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Non Maximum Suppression** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Suppress non-peak responses in a small score map by keeping only values that are greater than or equal to their 8-neighborhood.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- neighborhood-based decisions
+- branching around image boundaries
+- post-processing after score generation
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a simplified local-maxima suppression pass rather than the full orientation-aware Canny variant.
+- The CPU reference makes it easy to inspect which pixels should survive.
+- A next step is to chain this after template matching or edge detection.

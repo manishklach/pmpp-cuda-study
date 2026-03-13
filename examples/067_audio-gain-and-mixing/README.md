@@ -1,19 +1,19 @@
 # 067 - Audio Gain And Mixing
 
 - Track: `Image and Signal`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Beginner`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Audio Gain And Mixing** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Mix two short audio buffers with independent gains and clamp the result into a normalized range.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- embarrassingly parallel elementwise work
+- gain staging
+- saturation or clamp behavior
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is the signal-processing equivalent of a vector blend kernel.
+- Short synthetic waveforms keep the validation deterministic.
+- A next step is chaining this with FIR filtering or spectrogram analysis.

@@ -1,19 +1,19 @@
 # 062 - Image Resize Bilinear
 
 - Track: `Image and Signal`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Image Resize Bilinear** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Resize a small grayscale image with bilinear interpolation to study weighted sampling in a 2D CUDA kernel.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- fractional coordinates
+- neighbor fetch patterns
+- interpolation arithmetic and edge clamping
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This example keeps the data small enough that you can inspect the four contributing pixels for any output sample.
+- Comparing this against example 061 makes the smoothing effect easy to see.
+- A next improvement would be using textures or normalized coordinates.

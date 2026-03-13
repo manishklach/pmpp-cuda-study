@@ -1,93 +1,91 @@
 // Example 073: Run Length Encoding
 // Track: Image and Signal
 // Difficulty: Advanced
-// Status: Guided template
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
-#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
 
-// - Study focus: 2D or chunk indexing
-// - Study focus: boundary handling
-// - Study focus: pipeline composition
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
 
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
+__global__ void rle_kernel(const int *input, int n, int *values, int *lengths, int *run_count) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+  if (threadIdx.x == 0) {
+    int runs = 0;
+    for (int i = 0; i < n; ++i)
+      if (i == 0 || input[i] != input[i - 1])
+        ++runs;
+    *run_count = runs;
   }
-}
+  __syncthreads();
 
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
-}
+  if (idx >= n)
+    return;
+  bool is_run_start = (idx == 0) || (input[idx] != input[idx - 1]);
+  if (!is_run_start)
+    return;
 
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
+  int length = 1;
+  while (idx + length < n && input[idx + length] == input[idx])
+    ++length;
+
+  int slot = 0;
+  for (int i = 0; i < idx; ++i)
+    if (i == 0 || input[i] != input[i - 1])
+      ++slot;
+
+  values[slot] = input[idx];
+  lengths[slot] = length;
 }
 
 int main() {
-  std::cout << "Running 073" << std::endl;
-
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
-  CHECK_CUDA(cudaGetLastError());
-  CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
-
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
+  std::vector<int> input = {1, 1, 1, 2, 2, 5, 5, 5, 5, 3, 3, 1, 1, 4};
+  const int n = static_cast<int>(input.size());
+  std::vector<int> cpu_values, cpu_lengths;
+  for (int i = 0; i < n;) {
+    int j = i + 1;
+    while (j < n && input[j] == input[i])
+      ++j;
+    cpu_values.push_back(input[i]);
+    cpu_lengths.push_back(j - i);
+    i = j;
   }
 
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
+  std::vector<int> gpu_values(n, 0), gpu_lengths(n, 0);
+  int gpu_runs = 0;
+  int *d_input = nullptr, *d_values = nullptr, *d_lengths = nullptr, *d_run_count = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_input, n * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_values, n * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_lengths, n * sizeof(int)));
+  CHECK_CUDA(cudaMalloc(&d_run_count, sizeof(int)));
+  CHECK_CUDA(cudaMemcpy(d_input, input.data(), n * sizeof(int), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemset(d_run_count, 0, sizeof(int)));
+  rle_kernel<<<1, 128>>>(d_input, n, d_values, d_lengths, d_run_count);
+  CHECK_CUDA(cudaGetLastError());
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaMemcpy(gpu_values.data(), d_values, n * sizeof(int), cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(gpu_lengths.data(), d_lengths, n * sizeof(int), cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(&gpu_runs, d_run_count, sizeof(int), cudaMemcpyDeviceToHost));
 
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  bool ok = gpu_runs == static_cast<int>(cpu_values.size());
+  for (int i = 0; i < gpu_runs && ok; ++i)
+    if (gpu_values[i] != cpu_values[i] || gpu_lengths[i] != cpu_lengths[i])
+      ok = false;
+  std::cout << "Run count: " << gpu_runs << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(d_input));
+  CHECK_CUDA(cudaFree(d_values));
+  CHECK_CUDA(cudaFree(d_lengths));
+  CHECK_CUDA(cudaFree(d_run_count));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

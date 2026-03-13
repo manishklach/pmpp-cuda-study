@@ -1,7 +1,7 @@
 // Example 089: Ray Sphere Tracer
 // Track: Simulation
 // Difficulty: Advanced
-// Status: Guided template
+// Status: Reference-friendly
 
 #include <cuda_runtime.h>
 #include <cmath>
@@ -9,85 +9,83 @@
 #include <iostream>
 #include <vector>
 
-#define CHECK_CUDA(call)                                                                           \
-  do {                                                                                             \
-    cudaError_t status__ = (call);                                                                 \
-    if (status__ != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA error: " << cudaGetErrorString(status__) << " at " << __FILE__ << ":"     \
-                << __LINE__ << std::endl;                                                          \
-      std::exit(EXIT_FAILURE);                                                                     \
-    }                                                                                              \
-  } while (0)
-
-// - Study focus: state updates
-// - Study focus: time stepping or sampling
-// - Study focus: numerical checks
-
-__global__ void study_kernel(const float *a, const float *b, float *out, int n) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    out[idx] = a[idx] + b[idx];
+inline void check_cuda(cudaError_t status, const char *file, int line) {
+  if (status != cudaSuccess) {
+    std::cerr << "CUDA error: " << cudaGetErrorString(status) << " at " << file << ":" << line
+              << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 }
 
-static void fill_input(std::vector<float> &values, float scale) {
-  for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-    values[i] = scale * static_cast<float>((i % 17) - 8);
-  }
+#define CHECK_CUDA(call) check_cuda((call), __FILE__, __LINE__)
+
+struct Vec3 {
+  float x;
+  float y;
+  float z;
+};
+
+__device__ __host__ Vec3 sub(Vec3 a, Vec3 b) {
+  return {a.x - b.x, a.y - b.y, a.z - b.z};
+}
+__device__ __host__ float dot(Vec3 a, Vec3 b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+__device__ __host__ Vec3 normalize(Vec3 v) {
+  float inv = 1.0f / sqrtf(dot(v, v));
+  return {v.x * inv, v.y * inv, v.z * inv};
 }
 
-static void cpu_reference(const std::vector<float> &a, const std::vector<float> &b,
-                          std::vector<float> &out) {
-  for (int i = 0; i < static_cast<int>(out.size()); ++i) {
-    out[i] = a[i] + b[i];
-  }
+__device__ __host__ float trace_pixel(int x, int y, int width, int height) {
+  float u = (2.0f * (x + 0.5f) / width - 1.0f);
+  float v = (2.0f * (y + 0.5f) / height - 1.0f);
+  Vec3 origin = {0.0f, 0.0f, -3.0f};
+  Vec3 dir = normalize({u, -v, 1.5f});
+  Vec3 center = {0.0f, 0.0f, 0.0f};
+  Vec3 oc = sub(origin, center);
+  float b = dot(oc, dir);
+  float c = dot(oc, oc) - 1.0f;
+  float discriminant = b * b - c;
+  if (discriminant < 0.0f)
+    return 0.0f;
+  float t = -b - sqrtf(discriminant);
+  if (t <= 0.0f)
+    return 0.0f;
+  Vec3 hit = {origin.x + t * dir.x, origin.y + t * dir.y, origin.z + t * dir.z};
+  Vec3 normal = normalize(hit);
+  Vec3 light = normalize({0.7f, 0.5f, -1.0f});
+  return fmaxf(0.0f, dot(normal, light));
+}
+
+__global__ void ray_sphere_kernel(float *image, int width, int height) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+  if (x < width && y < height)
+    image[y * width + x] = trace_pixel(x, y, width, height);
 }
 
 int main() {
-  std::cout << "Running 089" << std::endl;
+  const int width = 16, height = 12;
+  std::vector<float> cpu(width * height, 0.0f), gpu(width * height, 0.0f);
+  for (int y = 0; y < height; ++y)
+    for (int x = 0; x < width; ++x)
+      cpu[y * width + x] = trace_pixel(x, y, width, height);
 
-  const int n = 1 << 12;
-  const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
-  std::vector<float> host_a(n), host_b(n), host_out(n, 0.0f), host_ref(n, 0.0f);
-  fill_input(host_a, 1.0f);
-  fill_input(host_b, 0.5f);
-  cpu_reference(host_a, host_b, host_ref);
-
-  float *device_a = nullptr;
-  float *device_b = nullptr;
-  float *device_out = nullptr;
-  CHECK_CUDA(cudaMalloc(&device_a, bytes));
-  CHECK_CUDA(cudaMalloc(&device_b, bytes));
-  CHECK_CUDA(cudaMalloc(&device_out, bytes));
-  CHECK_CUDA(cudaMemcpy(device_a, host_a.data(), bytes, cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(device_b, host_b.data(), bytes, cudaMemcpyHostToDevice));
-
-  const int threads = 256;
-  const int blocks = (n + threads - 1) / threads;
-  study_kernel<<<blocks, threads>>>(device_a, device_b, device_out, n);
+  float *d_image = nullptr;
+  CHECK_CUDA(cudaMalloc(&d_image, gpu.size() * sizeof(float)));
+  dim3 threads(16, 16);
+  dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
+  ray_sphere_kernel<<<blocks, threads>>>(d_image, width, height);
   CHECK_CUDA(cudaGetLastError());
   CHECK_CUDA(cudaDeviceSynchronize());
-  CHECK_CUDA(cudaMemcpy(host_out.data(), device_out, bytes, cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(gpu.data(), d_image, gpu.size() * sizeof(float), cudaMemcpyDeviceToHost));
 
-  int mismatches = 0;
-  for (int i = 0; i < n; ++i) {
-    if (std::fabs(host_out[i] - host_ref[i]) > 1.0e-4f) {
-      ++mismatches;
-    }
-  }
-
-  std::cout << "Blocks: " << blocks << ", Threads: " << threads << std::endl;
-  std::cout << "Validation: " << (mismatches == 0 ? "PASS" : "UPDATE TEMPLATE LOGIC") << std::endl;
-
-  CHECK_CUDA(cudaFree(device_a));
-  CHECK_CUDA(cudaFree(device_b));
-  CHECK_CUDA(cudaFree(device_out));
-  return mismatches == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  bool ok = true;
+  for (std::size_t i = 0; i < gpu.size(); ++i)
+    if (std::fabs(cpu[i] - gpu[i]) > 1.0e-5f)
+      ok = false;
+  std::cout << "Center pixel shade: " << gpu[(height / 2) * width + width / 2] << std::endl;
+  std::cout << "Validation: " << (ok ? "PASS" : "FAIL") << std::endl;
+  CHECK_CUDA(cudaFree(d_image));
+  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-// Suggested next steps:
-// 1. Replace study_kernel with the actual kernel for this algorithm.
-// 2. Expand cpu_reference to match the real computation.
-// 3. Add any extra buffers, atomics, scans, or shared-memory tiles you need.
-// 4. Test on tiny deterministic inputs first.
-// 5. Compare with CUDA libraries when the topic overlaps with one.

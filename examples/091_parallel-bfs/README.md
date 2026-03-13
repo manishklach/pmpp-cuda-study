@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Parallel BFS** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Traverse a small graph in breadth-first order using level-synchronous frontier expansion on the GPU.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- frontier-based irregular parallelism
+- CSR graph storage
+- repeated kernel launches across levels
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a compact version of the classic PMPP BFS structure.
+- The host controls the outer level loop while the GPU expands one frontier at a time.
+- A next step is experimenting with push-pull traversal strategies.

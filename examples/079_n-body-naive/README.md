@@ -2,18 +2,18 @@
 
 - Track: `Simulation`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **N Body Naive** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Compute one force accumulation per particle using the straightforward O(n^2) all-pairs formulation.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- all-pairs interactions
+- softening for numerical stability
+- mapping one particle update per thread
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is the clear baseline before applying shared-memory tiling.
+- The example only computes one integration step on a tiny system.
+- A next step is comparing memory traffic and reuse with example 080.

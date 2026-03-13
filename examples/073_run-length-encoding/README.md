@@ -2,18 +2,18 @@
 
 - Track: `Image and Signal`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Run Length Encoding** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Identify run starts in a symbol stream and emit compact `(value, length)` pairs with a simple atomic write-out.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- flagging segment boundaries
+- compaction-like output generation
+- variable-length result handling
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This version favors a small and understandable pipeline over a fully parallel scan-based encoder.
+- Each run-start thread claims one slot in the compact output arrays.
+- A next PMPP step is replacing the atomic counter with prefix sums over the flags.

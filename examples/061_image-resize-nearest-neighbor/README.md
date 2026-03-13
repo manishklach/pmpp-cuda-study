@@ -1,19 +1,19 @@
 # 061 - Image Resize Nearest Neighbor
 
 - Track: `Image and Signal`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Image Resize Nearest Neighbor** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Resize a small grayscale image on the GPU with nearest-neighbor sampling and compare it against a CPU reference.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- 2D thread mapping
+- source-to-destination coordinate transforms
+- boundary-safe pixel fetches
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- Each output pixel is independent, so this is a good first image-resampling kernel.
+- The example uses deterministic dimensions so you can inspect a few known coordinates by hand.
+- A natural next step is to compare the visual and numerical difference against bilinear interpolation.

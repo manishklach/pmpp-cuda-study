@@ -2,18 +2,18 @@
 
 - Track: `Simulation`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Boids Flocking** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Compute one boids-style steering update using alignment, cohesion, and separation on a tiny flock.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- all-to-all local interaction rules
+- combining several behavioral terms per agent
+- updating positions and velocities from shared state
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is another example where O(n^2) clarity is useful before adding spatial partitioning.
+- The three steering terms map nicely to separate accumulators in each thread.
+- A next step is adding a grid-based neighbor search to reduce the interaction cost.

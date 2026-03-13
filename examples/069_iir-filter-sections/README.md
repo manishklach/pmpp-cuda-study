@@ -2,18 +2,18 @@
 
 - Track: `Image and Signal`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **IIR Filter Sections** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Run a simple first-order IIR section per channel to show how GPU parallelism can live across independent signal streams even when time within each stream remains sequential.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- parallelism across channels
+- loop-carried dependencies within each thread
+- mapping limited intra-signal parallelism to CUDA
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a useful example because not every DSP algorithm parallelizes across time samples.
+- Each thread owns one channel and steps through time sequentially.
+- A next extension is stacking multiple biquad sections per channel.

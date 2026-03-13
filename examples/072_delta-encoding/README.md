@@ -1,19 +1,19 @@
 # 072 - Delta Encoding
 
 - Track: `Image and Signal`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Beginner`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Delta Encoding** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Convert a monotonically increasing integer stream into first differences, which is a common compression pre-processing step.
 
 ## PMPP Ideas To Focus On
 
-- 2D or chunk indexing
-- boundary handling
-- pipeline composition
+- neighbor dependencies with one-element lookback
+- edge handling for the first output element
+- compression-oriented transforms
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a simple but useful example of local differencing.
+- It pairs well with scan and run-length encoding examples later in the repo.
+- A next extension is decoding on the GPU with an exclusive scan.

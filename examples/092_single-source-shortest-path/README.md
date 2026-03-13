@@ -2,18 +2,18 @@
 
 - Track: `Graph and ML`
 - Difficulty: `Advanced`
-- Status: `Guided template`
+- Status: `Reference-friendly`
 - GitHub batch: `081-100`
 
 ## Goal
 
-Study **Single Source Shortest Path** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Solve a small weighted graph with Bellman-Ford style edge relaxations on the GPU.
 
 ## PMPP Ideas To Focus On
 
-- irregular parallelism
-- iteration strategy
-- scalability planning
+- parallel edge processing
+- repeated relaxation rounds
+- graph algorithm correctness over irregular memory access
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- Bellman-Ford is a good teaching baseline before more advanced SSSP variants.
+- Each relaxation pass is embarrassingly parallel over edges.
+- A next step is adding frontier filtering or delta-stepping ideas.

@@ -1,19 +1,19 @@
 # 076 - Monte Carlo Pi
 
 - Track: `Simulation`
-- Difficulty: `Advanced`
-- Status: `Guided template`
+- Difficulty: `Intermediate`
+- Status: `Reference-friendly`
 - GitHub batch: `061-080`
 
 ## Goal
 
-Study **Monte Carlo Pi** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Estimate pi by throwing random points into the unit square and counting how many land inside the unit circle.
 
 ## PMPP Ideas To Focus On
 
-- state updates
-- time stepping or sampling
-- numerical checks
+- independent random trials
+- reduction via per-thread hit counts
+- stochastic validation
 
 ## Build
 
@@ -27,10 +27,8 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This is a classic PMPP example for massively parallel Monte Carlo work.
+- A lightweight LCG keeps the example self-contained.
+- A next step is switching to CURAND or adding confidence-interval estimates.

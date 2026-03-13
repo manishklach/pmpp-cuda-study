@@ -7,13 +7,13 @@
 
 ## Goal
 
-Study **Cholesky Factorization** in CUDA using a PMPP-style decomposition. Start small, validate correctness, then tune.
+Build and study a library-aware study scaffold of **Cholesky Factorization**.
 
 ## PMPP Ideas To Focus On
 
-- data layout
-- memory reuse
-- correctness against a CPU reference
+- SPD assumptions
+- triangular updates
+- factorization validation
 
 ## Build
 
@@ -27,10 +27,12 @@ nvcc -std=c++17 -O2 main.cu -o example.exe
 .\example.exe
 ```
 
-## Study Checklist
+## Study Notes
 
-- Describe the parallel unit of work.
-- Explain the launch configuration.
-- Compare GPU output against a CPU reference.
-- Note one correctness risk and one performance risk.
-- Write one extension you want to try next.
+- This example is intentionally a stronger study scaffold because it typically depends on CUDA math libraries not available in this authoring environment.
+- Use the README plus code comments as a roadmap for the eventual implementation.
+
+## What To Modify Next
+
+- Build a tiny SPD matrix and validate on CPU.
+- Compare direct code with cuSOLVER later.
