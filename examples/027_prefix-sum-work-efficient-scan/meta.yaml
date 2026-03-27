@@ -4,8 +4,8 @@ title: Prefix Sum Work Efficient Scan
 module: parallel-patterns
 category: scan
 difficulty: intermediate
-status: verified
-maturity_level: 4
+status: fully_mature
+maturity_level: 6
 
 validation:
   type: cpu_reference

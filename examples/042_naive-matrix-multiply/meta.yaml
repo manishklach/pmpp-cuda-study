@@ -4,8 +4,8 @@ title: Naive Matrix Multiply
 module: linear-algebra
 category: dense-matrix
 difficulty: intermediate
-status: verified
-maturity_level: 4
+status: fully_mature
+maturity_level: 6
 
 description: >
   Multiply two dense square matrices with a simple global-memory kernel and validate

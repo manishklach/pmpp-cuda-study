@@ -15,24 +15,32 @@
 namespace {
 
 constexpr const char *kExampleName = "026_prefix-sum-naive-scan";
-constexpr int kMaxN = 128;
+constexpr int kMaxScanElements = 1024;
 
-__global__ void hillis_steele_kernel(const int *input, int *output, int n) {
-  __shared__ int data[kMaxN];
+int clamp_problem_size(int requested) {
+  return std::max(2, std::min(requested, kMaxScanElements));
+}
+
+__global__ void hillis_steele_inclusive_scan_kernel(const int *input, int *output, int n) {
+  __shared__ int scratch[kMaxScanElements];
   int tid = threadIdx.x;
-  data[tid] = tid < n ? input[tid] : 0;
+
+  if (tid < n)
+    scratch[tid] = input[tid];
   __syncthreads();
 
+  // In Hillis-Steele, each phase looks back by a growing offset. Every phase needs two
+  // synchronizations so no thread reads data that another thread has already overwritten.
   for (int offset = 1; offset < n; offset <<= 1) {
-    int add = tid >= offset ? data[tid - offset] : 0;
+    int addend = (tid < n && tid >= offset) ? scratch[tid - offset] : 0;
     __syncthreads();
     if (tid < n)
-      data[tid] += add;
+      scratch[tid] += addend;
     __syncthreads();
   }
 
   if (tid < n)
-    output[tid] = data[tid];
+    output[tid] = scratch[tid];
 }
 
 std::vector<int> cpu_reference(const std::vector<int> &input) {
@@ -43,7 +51,7 @@ std::vector<int> cpu_reference(const std::vector<int> &input) {
 }
 
 pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
-  const int n = std::min(kMaxN, std::max(2, options.size));
+  const int n = clamp_problem_size(options.size);
   std::vector<int> input = pmpp::make_uniform_ints(n, options.seed, 0, 5);
   std::vector<int> cpu = cpu_reference(input);
   std::vector<int> gpu(n, 0);
@@ -54,7 +62,7 @@ pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
   PMPP_CUDA_CHECK(cudaMalloc(&device_output, n * sizeof(int)));
   PMPP_CUDA_CHECK(cudaMemcpy(device_input, input.data(), n * sizeof(int), cudaMemcpyHostToDevice));
 
-  hillis_steele_kernel<<<1, kMaxN>>>(device_input, device_output, n);
+  hillis_steele_inclusive_scan_kernel<<<1, n>>>(device_input, device_output, n);
   PMPP_CUDA_KERNEL_CHECK();
   PMPP_CUDA_CHECK(cudaMemcpy(gpu.data(), device_output, n * sizeof(int), cudaMemcpyDeviceToHost));
 
@@ -62,13 +70,15 @@ pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
   PMPP_CUDA_CHECK(cudaFree(device_output));
 
   pmpp::ValidationSummary summary = pmpp::compare_vectors(cpu, gpu);
-  summary.notes = "This example keeps the scan in one block so the naive Hillis-Steele structure is easy to inspect.";
+  summary.notes =
+      "Naive scan performs O(n log n) additions and synchronizes on every offset step.";
   return summary;
 }
 
 pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
-  const int n = std::min(kMaxN, std::max(2, options.size));
+  const int n = clamp_problem_size(options.size);
   std::vector<int> input = pmpp::make_uniform_ints(n, options.seed, 0, 5);
+
   int *device_input = nullptr;
   int *device_output = nullptr;
   PMPP_CUDA_CHECK(cudaMalloc(&device_input, n * sizeof(int)));
@@ -76,12 +86,14 @@ pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
   PMPP_CUDA_CHECK(cudaMemcpy(device_input, input.data(), n * sizeof(int), cudaMemcpyHostToDevice));
 
   pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
-    hillis_steele_kernel<<<1, kMaxN>>>(device_input, device_output, n);
+    hillis_steele_inclusive_scan_kernel<<<1, n>>>(device_input, device_output, n);
     PMPP_CUDA_KERNEL_CHECK();
   });
   stats.bandwidth_gbps = pmpp::bandwidth_gbps(static_cast<std::size_t>(n) * sizeof(int) * 2,
                                               stats.avg_ms);
   stats.throughput = pmpp::elements_per_second(n, stats.avg_ms);
+  stats.problem_label = "Scanned elements";
+  stats.problem_size = static_cast<std::size_t>(n);
 
   PMPP_CUDA_CHECK(cudaFree(device_input));
   PMPP_CUDA_CHECK(cudaFree(device_output));
@@ -92,12 +104,14 @@ pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
 
 int main(int argc, char **argv) {
   pmpp::CommonOptions options = pmpp::parse_common_options(argc, argv);
+
   if (options.check) {
     pmpp::ValidationSummary summary = run_check(options);
     pmpp::print_validation_report(kExampleName, summary);
     if (!summary.ok)
       return EXIT_FAILURE;
   }
+
   if (options.bench) {
     if (!options.verify)
       std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
@@ -105,5 +119,6 @@ int main(int argc, char **argv) {
     pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters,
                                  "Elements/sec");
   }
+
   return EXIT_SUCCESS;
 }

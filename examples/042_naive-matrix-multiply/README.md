@@ -1,67 +1,62 @@
 # 042 - Naive Matrix Multiply
 
-- Track: `Linear Algebra`
-- Difficulty: `Intermediate`
-- Status: `🧪 verified`
-- Maturity: `Level 4 - benchmarkable baseline`
+## Overview
 
-## Goal
+This example multiplies two dense square matrices using the straightforward global-memory formulation. It is the baseline that makes the tiled shared-memory version worth studying.
 
-Multiply two dense square matrices with a straightforward CUDA kernel and verify the result against a CPU reference.
+## What this example teaches
 
-## Why This Example Matters
+- how to map one thread to one output matrix element
+- why naive matrix multiply rereads the same values many times
+- how to benchmark a dense compute kernel after validating correctness
 
-This is the baseline dense GEMM example. It matters because the optimized tiled version only makes sense once the naive mapping and its global-memory cost are clear.
+## CUDA concepts involved
 
-## CUDA Concepts Taught
+- 2D grids and blocks
+- output-space mapping
+- global-memory-heavy dense compute
+- CPU reference validation
 
-- 2D thread/block mapping
-- one-thread-per-output-element mapping
-- baseline dense numeric kernels
-- benchmark mode for a compute-heavy workload
+## Kernel mapping
 
-## Prerequisites
+- each thread computes one `C[row, col]`
+- blocks cover 16x16 output tiles
+- every thread walks across one row of `A` and one column of `B`
+- launch shape: `blocks = ceil(size / 16) x ceil(size / 16)`, `threads = 16 x 16`
 
-- `002_vector-addition`
-- `023_sum-reduction`
+## Memory behavior
 
-## Build
+- every multiply-add reads directly from global memory
+- rows of `A` are reused across nearby columns, but this naive kernel does not cache them
+- columns of `B` are reread by many threads, which is one reason the tiled version can help so much
+
+## Correctness approach
+
+- deterministic input matrices come from fixed seeds
+- a CPU reference computes the same dense product
+- the GPU output must match the CPU result within `1e-4`
+
+## Build and run
 
 ```powershell
 nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
+.\example.exe --check --size 64
+.\example.exe --bench --size 256 --warmup 5 --iters 10
 ```
 
-## Run
+## Expected output
 
-```powershell
-.\example.exe --check --size 32
-```
+- `Validation: PASS`
+- benchmark mode reports matrix dimension, timing, output-element throughput, and effective bandwidth
 
-```powershell
-.\example.exe --bench --size 128 --warmup 5 --iters 10
-```
+## Common mistakes
 
-## Expected Output
+- mixing up row-major indexing for `A`, `B`, and `C`
+- treating the naive kernel as a performance target instead of a correctness baseline
+- forgetting that square matrix size grows total work cubically
 
-- Prints `PASS` when GPU and CPU matrix products match within tolerance.
-- Benchmark mode prints timing and output-element throughput.
-
-## Correctness Notes
-
-- The example uses square matrices driven by a single `--size` value.
-- Validation compares every output element against the CPU product.
-
-## Benchmark Notes
-
-- This version is intentionally naive and rereads matrix values from global memory many times.
-
-## Likely Bottlenecks
-
-- repeated global-memory loads
-- low arithmetic intensity relative to optimized tiled variants
-
-## Next Optimization Steps
+## Possible optimizations / next step
 
 - compare directly with `043_tiled-matrix-multiply`
 - experiment with different block shapes
-- add rectangular matrix support
+- extend the example to rectangular matrices

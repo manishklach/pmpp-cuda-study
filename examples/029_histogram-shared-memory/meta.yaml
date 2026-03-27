@@ -4,8 +4,8 @@ title: Histogram Shared Memory
 module: parallel-patterns
 category: histogram
 difficulty: intermediate
-status: verified
-maturity_level: 4
+status: fully_mature
+maturity_level: 6
 
 validation:
   type: cpu_reference

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 
 namespace pmpp {
@@ -10,6 +11,8 @@ struct BenchmarkStats {
   float max_ms = 0.0f;
   double bandwidth_gbps = 0.0;
   double throughput = 0.0;
+  std::string problem_label;
+  std::size_t problem_size = 0;
 };
 
 struct ValidationSummary {

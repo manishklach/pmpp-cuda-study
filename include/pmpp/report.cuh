@@ -22,6 +22,8 @@ inline void print_benchmark_report(const std::string &example_name, const Benchm
                                    int warmup, int iters, const std::string &unit_label = "") {
   std::cout << "Example: " << example_name << std::endl;
   std::cout << "Mode: bench" << std::endl;
+  if (!stats.problem_label.empty() && stats.problem_size > 0)
+    std::cout << stats.problem_label << ": " << stats.problem_size << std::endl;
   std::cout << "Warmup iters: " << warmup << std::endl;
   std::cout << "Timed iters: " << iters << std::endl;
   std::cout << "Benchmark avg ms: " << stats.avg_ms << std::endl;

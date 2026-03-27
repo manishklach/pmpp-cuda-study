@@ -1,68 +1,63 @@
 # 043 - Tiled Matrix Multiply
 
-- Track: `Linear Algebra`
-- Difficulty: `Intermediate`
-- Status: `✅ fully mature`
-- Maturity: `Level 6 - polished teaching example`
+## Overview
 
-## Goal
+This example multiplies two dense square matrices using shared-memory tiling. It is the classic CUDA optimization step after the naive global-memory matrix multiply.
 
-Multiply two dense square matrices using shared-memory tiling, then validate the result against a CPU reference.
+## What this example teaches
 
-## Why This Example Matters
+- how tiling improves data reuse
+- how blocks cooperate through shared memory
+- why matrix multiply is such a strong CUDA teaching example
 
-This is one of the most important CUDA study examples in the repo. It brings together thread mapping, tiling, synchronization, and memory reuse in a form that is easy to compare against a naive baseline.
+## CUDA concepts involved
 
-## CUDA Concepts Taught
+- 2D tiles
+- shared memory
+- cooperative loading
+- synchronization with `__syncthreads()`
+- reuse-driven optimization
 
-- shared-memory tiles
-- block-level cooperation
-- `__syncthreads()`
-- reduced global-memory traffic
-- benchmark mode for an optimized teaching kernel
+## Kernel mapping
 
-## Prerequisites
+- each block computes one 16x16 output tile of `C`
+- threads cooperatively load a tile of `A` and a tile of `B`
+- each thread accumulates one output element using those shared tiles
+- launch shape: `blocks = ceil(size / 16) x ceil(size / 16)`, `threads = 16 x 16`
 
-- `042_naive-matrix-multiply`
+## Memory behavior
 
-## Build
+- global loads are staged into shared-memory tiles
+- each loaded value is reused by many multiply-adds before the next tile is fetched
+- tiling improves reuse because the same `A` row tile and `B` column tile feed multiple output elements instead of being reread from global memory by every thread
+
+## Correctness approach
+
+- deterministic input matrices come from fixed seeds
+- a CPU reference computes the same dense product
+- the GPU output must match the CPU result within `1e-4`
+
+## Build and run
 
 ```powershell
 nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
+.\example.exe --check --size 64
+.\example.exe --bench --size 256 --warmup 5 --iters 10
 ```
 
-## Run
+## Expected output
 
-```powershell
-.\example.exe --check --size 32
-```
+- `Validation: PASS`
+- benchmark mode reports matrix dimension, timing, output-element throughput, and effective bandwidth
 
-```powershell
-.\example.exe --bench --size 128 --warmup 5 --iters 10
-```
+## Common mistakes
 
-## Expected Output
+- forgetting one of the two synchronization points around shared-memory tile use
+- assuming tiling helps without understanding that the win comes from reuse, not from shared memory by itself
+- choosing a tile size that does not fit well with shared-memory capacity or occupancy
 
-- Prints `PASS` when GPU output matches the CPU result within tolerance.
-- Benchmark mode prints timing and output-element throughput.
+## Possible optimizations / next step
 
-## Correctness Notes
-
-- The CPU reference uses the same square-matrix shape as the GPU kernel.
-- Validation uses an absolute tolerance of `1e-4`.
-
-## Benchmark Notes
-
-- This kernel should outperform the naive version for larger sizes because each tile load is reused by multiple threads.
-
-## Likely Bottlenecks
-
-- shared-memory capacity limits
-- tile size choice
-- synchronization overhead
-
-## Next Optimization Steps
-
-- compare against `042_naive-matrix-multiply`
+- compare timing directly against `042_naive-matrix-multiply`
 - try tile sizes 8, 16, and 32
-- add rectangular matrix support and block-shape experiments
+- explore register tiling, vectorized loads, or warp-level matrix instructions after this baseline is clear

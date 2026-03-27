@@ -1,68 +1,51 @@
 # Status Tracking
 
-Use this file as the source of truth for repo implementation status.
+This file is the compact status view for the 100-example PMPP CUDA study sequence.
 
 ## Status Legend
 
-- `✅ fully mature` — validated, benchmarkable, documentation-rich example
-- `🧪 verified` — validated example with clear PASS / FAIL behavior
-- `⚙️ compiles` — builds, but validation maturity is still limited
-- `🟡 scaffolded` — starter code and docs exist, but the example is not yet trusted
-- `📝 notes only` — conceptual planning exists, but code is not added yet
-- `🚧 in progress` — currently being implemented or revised
+- `Implemented`: runnable example with code, README notes, and at least a direct correctness path
+- `Template`: intentionally scaffolded topic where a lightweight study sketch is clearer than pretending to be a full implementation
+- `Planned`: reserved for future additions outside the current 100-example set
 
-See [docs/maturity-model.md](maturity-model.md) for the repo-wide maturity ladder.
+## Current Snapshot
 
-## Current High-Level Status
+| Bucket | Count | Notes |
+|---|---:|---|
+| Implemented | 96 | Includes the full `001-056` range and `061-100` |
+| Template | 4 | `057_lu-factorization-sketch`, `058_cholesky-factorization`, `059_qr-factorization-sketch`, `060_fft-based-convolution` |
+| Planned | 0 | No empty slots in the current 100-example sequence |
 
-| Module | Example Range | Count | Implemented | Scaffolded | Notes Only | Comments |
-|---|---:|---:|---:|---:|---:|---|
-| Foundations | 001-012 | 12 | 12 | 0 | 0 | Strong beginner path |
-| Memory and execution basics | 013-022 | 10 | 0 | 10 | 0 | Good next expansion target |
-| Reductions / scans / compaction | 023-036 | 14 | 7 | 7 | 0 | Extend scans and segmented work |
-| Histograms / sorting / irregular primitives | 037-048 | 12 | 5 | 7 | 0 | Sorting and histogram ladders are high value |
-| Matrix / stencil / convolution | 049-070 | 22 | 18 | 4 | 0 | Factorization-heavy examples can remain scaffold-like |
-| Sparse / graph workloads | 071-086 | 16 | 0 | 16 | 0 | Planned expansion module |
-| ML / tensor kernels | 087-104 | 18 | 0 | 18 | 0 | Planned expansion module |
-| Simulation / rendering / scientific computing | 105-120 | 16 | 0 | 16 | 0 | Planned expansion module |
-| Performance engineering | 121-132 | 12 | 0 | 12 | 0 | Planned expansion module |
-| Capstones / optimization ladders | 133-140 | 8 | 0 | 8 | 0 | Planned expansion module |
+## Module Summary
 
-## Per-Example Tracking Template
+| Module | Example Range | Implemented | Template | Notes |
+|---|---|---:|---:|---|
+| Foundations | 001-020 | 20 | 0 | Strong beginner path |
+| Parallel patterns | 021-040 | 20 | 0 | Includes polished reduction, scan, histogram, and compaction examples |
+| Linear algebra | 041-060 | 16 | 4 | Dense kernels are implemented; factorization-heavy topics remain scaffolded |
+| Image and signal | 061-075 | 15 | 0 | Runnable image and signal-processing examples |
+| Simulation | 076-090 | 15 | 0 | Runnable simulation and rendering progression |
+| Graph and ML | 091-100 | 10 | 0 | Runnable graph / ML progression |
 
-```markdown
-| # | Slug | Title | Module | Difficulty | Status | Validation | Notes |
-|---:|---|---|---|---|---|---|---|
-| 002 | vector-add | Vector Addition | Foundations | beginner | ✅ implemented | CPU reference | Canonical CUDA hello world |
-| 023 | sum-reduction | Sum Reduction | Reductions / scans / compaction | intermediate | ✅ implemented | CPU reference | Shared-memory reduction baseline |
-| 043 | tiled-matrix-multiply | Tiled Matrix Multiply | Matrix / stencil / convolution | intermediate | ✅ implemented | CPU reference | Core tiling example |
-| 073 | spmv-csr | SpMV CSR | Sparse / graph workloads | advanced | 🟡 scaffolded | pending | High-value next implementation |
-| 091 | softmax-rowwise | Softmax Rowwise | ML / tensor kernels | advanced | 📝 notes only | none | Good ML bridge kernel |
-| 134 | reduction-optimization-ladder | Reduction Optimization Ladder | Capstones / optimization ladders | advanced | 🚧 in progress | benchmark + correctness | Compare multiple implementations |
-```
+## Trusted Study Core
 
-## Suggested Workflow
+Recommended examples when you want the strongest current path through the repo:
 
-1. Update module counts when a batch lands.
-2. Update the per-example table for any example that changes status.
-3. Keep status honest: scaffolding is valuable, but it should not be labeled mature.
-4. Add links to reports or benchmark summaries in the `Notes` column where useful.
-
-## Current Trusted Core
-
-The strongest current maturity path is:
-
-- `020_matrix-transpose-with-shared-memory`
 - `002_vector-addition`
-- `007_saxpy`
+- `020_matrix-transpose-with-shared-memory`
+- `021_dot-product`
 - `023_sum-reduction`
-- `024_max-reduction`
-- `025_min-reduction`
+- `026_prefix-sum-naive-scan`
+- `027_prefix-sum-work-efficient-scan`
 - `028_histogram-global-atomics`
 - `029_histogram-shared-memory`
+- `030_stream-compaction`
+- `041_matrix-vector-multiply`
 - `042_naive-matrix-multiply`
 - `043_tiled-matrix-multiply`
-- `049_gaussian-blur`
-- `052_sparse-matrix-vector-multiply-csr`
-- `080_n-body-tiled`
-- `098_neural-network-forward-pass`
+
+## Maintenance Notes
+
+1. Keep the root [README](../README.md) and this file aligned on counts and template examples.
+2. If an example is promoted from template to implemented, update both the module summary and the root example table.
+3. Use `scripts/validate_repo.py` for structure checks and `scripts/build_examples.py` for `nvcc` build validation when CUDA is available.

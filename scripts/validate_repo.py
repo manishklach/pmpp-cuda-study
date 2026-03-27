@@ -10,10 +10,10 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
 
 
-REQUIRED_README_SECTIONS = [
-    "## Goal",
-    "## Build",
-    "## Run",
+README_SECTION_GROUPS = [
+    ("## Goal", "## Overview"),
+    ("## Build", "## Build and run"),
+    ("## Run", "## Build and run"),
 ]
 
 ALLOWED_STATUS = {
@@ -38,9 +38,9 @@ def validate_example(folder: Path, require_meta: bool) -> list[str]:
   readme = folder / "README.md"
   if readme.exists():
     text = readme.read_text(encoding="utf-8", errors="ignore")
-    for section in REQUIRED_README_SECTIONS:
-      if section not in text:
-        errors.append(f"{folder.name}: README missing section {section}")
+    for group in README_SECTION_GROUPS:
+      if not any(section in text for section in group):
+        errors.append(f"{folder.name}: README missing one of sections {group}")
 
   meta = folder / "meta.yaml"
   if meta.exists():

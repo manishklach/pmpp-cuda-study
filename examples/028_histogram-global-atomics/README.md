@@ -1,45 +1,61 @@
 # 028 - Histogram Global Atomics
 
-- Track: `Parallel Patterns`
-- Difficulty: `Intermediate`
-- Status: `🧪 verified`
-- Maturity: `Level 4 - benchmarkable`
+## Overview
 
-## Goal
+This example builds a small histogram by updating global-memory bins with `atomicAdd`. It is the simplest correct CUDA histogram, and it serves as the baseline for the shared-memory privatization example that follows.
 
-Build a histogram with direct global atomics and validate it against a CPU reference.
+## What this example teaches
 
-## Why This Example Matters
+- how to map one input element stream into a fixed set of bins
+- why irregular write patterns often require atomics
+- why contention can dominate histogram performance
 
-This is the baseline irregular primitive for the histogram path. It is intentionally simple and contention-heavy, which makes it the right reference point for later privatized or shared-memory variants.
+## CUDA concepts involved
 
-## CUDA Concepts Taught
+- global atomics
+- grid-stride loops
+- irregular write patterns
+- exact integer validation
 
-- atomics
-- irregular writes
-- histogram validation
+## Kernel mapping
 
-## Build
+- threads walk the input in a grid-stride loop
+- each thread hashes its sample to a bin and performs one atomic increment
+- launch shape: `blocks = ceil(n / block_size)`, `threads = block_size`
+
+## Memory behavior
+
+- input reads are linear and coalesced
+- bin updates are irregular and may serialize heavily when many samples target the same bin
+- this example intentionally uses hot bins so the contention cost is easy to discuss
+
+## Correctness approach
+
+- deterministic input values are generated from a fixed seed and a repeatable hot-bin pattern
+- a CPU reference builds the same histogram on the host
+- the GPU bin counts must match exactly
+
+## Build and run
 
 ```powershell
 nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
+.\example.exe --check --size 65536 --block-size 256
+.\example.exe --bench --size 1048576 --warmup 5 --iters 20 --block-size 256
 ```
 
-## Run
+## Expected output
 
-```powershell
-.\example.exe --check --size 65536
-```
+- `Validation: PASS`
+- benchmark mode reports sample count, timing, throughput, and effective bandwidth
 
-```powershell
-.\example.exe --bench --size 1048576 --warmup 5 --iters 20
-```
+## Common mistakes
 
-## Expected Output
+- assuming coalesced reads guarantee good performance even when the writes are highly contended
+- forgetting to zero the output bins before each run
+- using this baseline to judge histograms without also looking at contention patterns
 
-- Prints `PASS` when the GPU bin counts match the CPU histogram.
+## Possible optimizations / next step
 
-## Next Optimization Steps
-
-- compare with `029_histogram-shared-memory`
-- vary the number of bins and input skew to study contention
+- compare directly with `029_histogram-shared-memory`
+- increase the number of bins or change the skew to study how contention moves
+- experiment with per-warp or per-block privatization

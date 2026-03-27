@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -8,7 +9,6 @@
 #include "pmpp/cli.cuh"
 #include "pmpp/compare.cuh"
 #include "pmpp/cuda_check.cuh"
-#include "pmpp/random_inputs.cuh"
 #include "pmpp/report.cuh"
 
 namespace {
@@ -16,28 +16,46 @@ namespace {
 constexpr const char *kExampleName = "029_histogram-shared-memory";
 constexpr int kNumBins = 16;
 
-__global__ void histogram_shared_kernel(const unsigned int *input, unsigned int *bins, int n) {
-  __shared__ unsigned int local_bins[kNumBins];
-  int tid = threadIdx.x;
-  if (tid < kNumBins)
-    local_bins[tid] = 0;
-  __syncthreads();
-
-  int idx = blockIdx.x * blockDim.x + tid;
-  if (idx < n)
-    atomicAdd(&local_bins[input[idx] % kNumBins], 1u);
-  __syncthreads();
-
-  if (tid < kNumBins)
-    atomicAdd(&bins[tid], local_bins[tid]);
+int sanitize_block_size(int requested) {
+  return std::max(32, std::min(requested, 256));
 }
 
 std::vector<unsigned int> make_input(int n, unsigned int seed) {
-  std::vector<int> ints = pmpp::make_uniform_ints(n, seed, 0, kNumBins - 1);
-  std::vector<unsigned int> output(n, 0);
-  for (int i = 0; i < n; ++i)
-    output[i] = static_cast<unsigned int>((ints[i] + (i / 11)) % kNumBins);
-  return output;
+  std::vector<unsigned int> input(n, 0);
+  for (int i = 0; i < n; ++i) {
+    unsigned int hot_value = static_cast<unsigned int>((i + seed) % 4);
+    unsigned int cold_value = static_cast<unsigned int>((i * 7 + seed * 3) % kNumBins);
+    input[i] = (i % 5 == 0) ? cold_value : hot_value;
+  }
+  return input;
+}
+
+__global__ void histogram_global_kernel(const unsigned int *input, unsigned int *bins, int n) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  int stride = blockDim.x * gridDim.x;
+  for (int i = index; i < n; i += stride)
+    atomicAdd(&bins[input[i] % kNumBins], 1u);
+}
+
+__global__ void histogram_shared_kernel(const unsigned int *input, unsigned int *bins, int n) {
+  __shared__ unsigned int block_bins[kNumBins];
+  int tid = threadIdx.x;
+
+  for (int bin = tid; bin < kNumBins; bin += blockDim.x)
+    block_bins[bin] = 0;
+  __syncthreads();
+
+  int index = blockIdx.x * blockDim.x + tid;
+  int stride = blockDim.x * gridDim.x;
+
+  // Threads still read the input linearly, but now most atomics hit low-latency shared memory.
+  // The block only pays global atomics once per bin when it flushes its private histogram.
+  for (int i = index; i < n; i += stride)
+    atomicAdd(&block_bins[input[i] % kNumBins], 1u);
+  __syncthreads();
+
+  for (int bin = tid; bin < kNumBins; bin += blockDim.x)
+    atomicAdd(&bins[bin], block_bins[bin]);
 }
 
 std::vector<unsigned int> cpu_reference(const std::vector<unsigned int> &input) {
@@ -47,10 +65,10 @@ std::vector<unsigned int> cpu_reference(const std::vector<unsigned int> &input) 
   return bins;
 }
 
-pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
-  const int n = options.size;
-  std::vector<unsigned int> input = make_input(n, options.seed);
-  std::vector<unsigned int> cpu = cpu_reference(input);
+std::vector<unsigned int> run_histogram(const std::vector<unsigned int> &input, int block_size,
+                                        bool use_shared) {
+  const int n = static_cast<int>(input.size());
+  const int blocks = std::max(1, (n + block_size - 1) / block_size);
   std::vector<unsigned int> gpu(kNumBins, 0);
 
   unsigned int *device_input = nullptr;
@@ -61,24 +79,44 @@ pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
       cudaMemcpy(device_input, input.data(), n * sizeof(unsigned int), cudaMemcpyHostToDevice));
   PMPP_CUDA_CHECK(cudaMemset(device_bins, 0, kNumBins * sizeof(unsigned int)));
 
-  const int threads = options.block_size;
-  const int blocks = (n + threads - 1) / threads;
-  histogram_shared_kernel<<<blocks, threads>>>(device_input, device_bins, n);
+  if (use_shared)
+    histogram_shared_kernel<<<blocks, block_size>>>(device_input, device_bins, n);
+  else
+    histogram_global_kernel<<<blocks, block_size>>>(device_input, device_bins, n);
   PMPP_CUDA_KERNEL_CHECK();
 
   PMPP_CUDA_CHECK(
       cudaMemcpy(gpu.data(), device_bins, kNumBins * sizeof(unsigned int), cudaMemcpyDeviceToHost));
   PMPP_CUDA_CHECK(cudaFree(device_input));
   PMPP_CUDA_CHECK(cudaFree(device_bins));
+  return gpu;
+}
 
-  pmpp::ValidationSummary summary = pmpp::compare_vectors(cpu, gpu);
-  summary.notes = "Shared-memory privatization reduces contention before final global atomics.";
+pmpp::ValidationSummary run_check(const pmpp::CommonOptions &options) {
+  const int block_size = sanitize_block_size(options.block_size);
+  const std::vector<unsigned int> input = make_input(options.size, options.seed);
+  const std::vector<unsigned int> cpu = cpu_reference(input);
+  const std::vector<unsigned int> gpu_global = run_histogram(input, block_size, false);
+  const std::vector<unsigned int> gpu_shared = run_histogram(input, block_size, true);
+
+  pmpp::ValidationSummary global_summary = pmpp::compare_vectors(cpu, gpu_global);
+  pmpp::ValidationSummary shared_summary = pmpp::compare_vectors(cpu, gpu_shared);
+
+  pmpp::ValidationSummary summary = shared_summary;
+  summary.ok = global_summary.ok && shared_summary.ok;
+  summary.mismatch_count = global_summary.mismatch_count + shared_summary.mismatch_count;
+  summary.max_abs_error = std::max(global_summary.max_abs_error, shared_summary.max_abs_error);
+  summary.notes =
+      "Validated both the global-atomic baseline and the shared-memory privatized version.";
   return summary;
 }
 
 pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
   const int n = options.size;
-  std::vector<unsigned int> input = make_input(n, options.seed);
+  const int block_size = sanitize_block_size(options.block_size);
+  const int blocks = std::max(1, (n + block_size - 1) / block_size);
+  const std::vector<unsigned int> input = make_input(n, options.seed);
+
   unsigned int *device_input = nullptr;
   unsigned int *device_bins = nullptr;
   PMPP_CUDA_CHECK(cudaMalloc(&device_input, n * sizeof(unsigned int)));
@@ -86,17 +124,17 @@ pmpp::BenchmarkStats run_bench(const pmpp::CommonOptions &options) {
   PMPP_CUDA_CHECK(
       cudaMemcpy(device_input, input.data(), n * sizeof(unsigned int), cudaMemcpyHostToDevice));
 
-  const int threads = options.block_size;
-  const int blocks = (n + threads - 1) / threads;
   pmpp::BenchmarkStats stats = pmpp::run_benchmark_loop(options.warmup, options.iters, [&] {
     PMPP_CUDA_CHECK(cudaMemset(device_bins, 0, kNumBins * sizeof(unsigned int)));
-    histogram_shared_kernel<<<blocks, threads>>>(device_input, device_bins, n);
+    histogram_shared_kernel<<<blocks, block_size>>>(device_input, device_bins, n);
     PMPP_CUDA_KERNEL_CHECK();
   });
   stats.bandwidth_gbps =
       pmpp::bandwidth_gbps(static_cast<std::size_t>(n + kNumBins) * sizeof(unsigned int),
                            stats.avg_ms);
   stats.throughput = pmpp::elements_per_second(n, stats.avg_ms);
+  stats.problem_label = "Input samples";
+  stats.problem_size = static_cast<std::size_t>(n);
 
   PMPP_CUDA_CHECK(cudaFree(device_input));
   PMPP_CUDA_CHECK(cudaFree(device_bins));
@@ -120,7 +158,7 @@ int main(int argc, char **argv) {
       std::cout << "Validation: skipped (benchmark mode, use --verify or add --check)." << std::endl;
     pmpp::BenchmarkStats stats = run_bench(options);
     pmpp::print_benchmark_report(kExampleName, stats, options.warmup, options.iters,
-                                 "Elements/sec");
+                                 "Samples/sec");
   }
 
   return EXIT_SUCCESS;

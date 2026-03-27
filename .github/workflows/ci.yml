@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate repo structure
+        run: python scripts/validate_repo.py
+
+  cuda-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for nvcc
+        id: cuda
+        run: |
+          if command -v nvcc >/dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build representative CUDA examples
+        if: steps.cuda.outputs.available == 'true'
+        run: python scripts/build_examples.py --examples 021,023,027,029,041,043
+      - name: Explain skipped CUDA build
+        if: steps.cuda.outputs.available != 'true'
+        run: echo "nvcc is not available on this runner, so CI validated structure only."

@@ -4,8 +4,8 @@ title: Stream Compaction
 module: parallel-patterns
 category: irregular
 difficulty: intermediate
-status: verified
-maturity_level: 4
+status: fully_mature
+maturity_level: 6
 
 validation:
   type: invariant_plus_sorted_reference

@@ -1,204 +1,203 @@
-# PMPP CUDA Study With Templates
+# PMPP CUDA Study
 
-A structured CUDA study repository with **100 examples** ordered from simple kernels to advanced PMPP-style workloads.
+Structured CUDA study repository with 100 numbered examples arranged as a PMPP-style progression from basic kernels to larger parallel patterns, linear algebra, image processing, simulation, and graph / ML workloads.
 
-This repo is now being upgraded from broad curriculum coverage into a more mature PMPP-style study library with shared utilities, validation patterns, benchmark mode, and clearer example maturity tracking.
+## Repo Identity
 
-## Maturity Focus
+This repo exists to make CUDA study concrete. Each example is meant to be small enough to read in one sitting, but complete enough to compile, run, validate against a CPU reference, and compare with a nearby baseline or optimized variant where that comparison is educational.
 
-- Shared runtime helpers now live under `include/pmpp/`.
-- Flagship examples are being upgraded to use common `--check` and `--bench` modes.
-- Example maturity is tracked with `meta.yaml` files and the model in [docs/maturity-model.md](docs/maturity-model.md).
+The repository is organized by numbered example folders under `examples/`. Lower numbers focus on fundamentals, the middle ranges introduce classic PMPP patterns such as reduction, scan, histograms, and dense linear algebra, and later ranges broaden into image, simulation, and graph / ML workloads. The goal is not to be a production CUDA framework. The goal is a disciplined study library that rewards careful reading, correctness checks, and incremental optimization.
 
-## Trusted Core
+## Implemented So Far
 
-The best current examples to study first if you want the most mature path through the repo are:
+- Foundations: `001-020` are runnable, with `002_vector-addition`, `007_saxpy`, `019_matrix-transpose-naive`, and `020_matrix-transpose-with-shared-memory` as especially strong starting points.
+- Parallel patterns: `021-040` are runnable, including polished reduction, scan, histogram, compaction, gather / scatter, and selection examples.
+- Linear algebra: `041-056` and `061-100` are implemented, with `042_naive-matrix-multiply` and `043_tiled-matrix-multiply` forming the core tiling study pair.
+- Template-only holdouts: `057_lu-factorization-sketch`, `058_cholesky-factorization`, `059_qr-factorization-sketch`, and `060_fft-based-convolution`.
+
+## Best Examples To Start With
+
+- `002_vector-addition`: the cleanest CUDA workflow baseline
+- `020_matrix-transpose-with-shared-memory`: an early shared-memory win with clear mapping
+- `021_dot-product`: simple map-plus-reduce composition
+- `023_sum-reduction`: core PMPP reduction pattern
+- `042_naive-matrix-multiply`: dense-kernel baseline before optimization
+- `043_tiled-matrix-multiply`: classic shared-memory reuse example
+
+## Best Examples For Optimization Study
 
 - `020_matrix-transpose-with-shared-memory`
-- `002_vector-addition`
-- `007_saxpy`
 - `023_sum-reduction`
-- `024_max-reduction`
-- `025_min-reduction`
+- `026_prefix-sum-naive-scan`
+- `027_prefix-sum-work-efficient-scan`
 - `028_histogram-global-atomics`
 - `029_histogram-shared-memory`
+- `041_matrix-vector-multiply`
 - `042_naive-matrix-multiply`
 - `043_tiled-matrix-multiply`
-- `049_gaussian-blur`
-- `052_sparse-matrix-vector-multiply-csr`
-- `080_n-body-tiled`
-- `098_neural-network-forward-pass`
 
-## Included
+## Best Examples For Interview Prep / Learning CUDA Patterns
 
-- 100 numbered example folders with CUDA study material
-- Reference-friendly CUDA implementations for most examples across `001-100`
-- Per-example study notes and implementation checklists
-- A 5-batch GitHub publishing plan for `001-020` through `081-100`
-- Helper scripts used during batch implementation work
+- `002_vector-addition`: kernel launch, indexing, and validation
+- `023_sum-reduction`: shared memory, divergence, and synchronization
+- `027_prefix-sum-work-efficient-scan`: up-sweep / down-sweep reasoning
+- `029_histogram-shared-memory`: privatization and contention tradeoffs
+- `030_stream-compaction`: filtering with atomics versus scan-based indexing
+- `043_tiled-matrix-multiply`: tiling, reuse, and `__syncthreads()`
 
-## Implementation Status
+## How To Study This Repo
 
-- Fully implemented / reference-friendly: `96` examples
-  These have runnable CUDA study code plus example-specific documentation.
-- Guided templates: `4` examples
-  These are `057_lu-factorization-sketch`, `058_cholesky-factorization`, `059_qr-factorization-sketch`, and `060_fft-based-convolution`.
-  They are intentionally more scaffold-like because they overlap with library-heavy or numerically dense topics where a small study version is clearer than pretending to be production-ready.
-- Study-only: none currently labeled this way
-  If this category is introduced later, it should mean conceptual examples that explain the workflow but are not intended as full implementations.
+1. Start with correctness. Compile an example, run `--check`, and make sure you can explain why the CPU reference is trusted.
+2. Read the baseline first when there is one. For example, study `042` before `043`, `026` before `027`, and `028` before `029`.
+3. Compare mapping and memory behavior. Ask which thread owns which output, which values are reused, and where synchronization is required.
+4. Only then switch to `--bench`. Use timing to support what the code already suggests rather than replacing the explanation.
 
-## Quick Start
+## Build Instructions
+
+Direct `nvcc` build from an example folder:
 
 ```powershell
-cd examples\001_hello-world-kernel
-nvcc -std=c++17 -O2 main.cu -o example.exe
-.\example.exe
+cd examples\023_sum-reduction
+nvcc -std=c++17 -O2 -I..\..\include main.cu -o example.exe
+.\example.exe --check --size 65536 --block-size 256
 ```
 
-## Planning Docs
+Top-level CMake build:
 
-- Curriculum map: [docs/curriculum-map.md](docs/curriculum-map.md)
-- Status tracking: [docs/status.md](docs/status.md)
-- Maturity model: [docs/maturity-model.md](docs/maturity-model.md)
-- Example conventions: [docs/example-conventions.md](docs/example-conventions.md)
-- Scaffold templates: [templates/](templates)
-- Example generator: [tools/generate_examples.py](tools/generate_examples.py)
-- Local validation scripts: [scripts/](scripts)
+```powershell
+cmake -S . -B build
+cmake --build build --config Release
+```
 
-## Featured Study Examples
+Assumptions:
 
-- Vector Addition: the canonical CUDA starting point for kernel launches, host/device allocation, and memory copies. See `002_vector-addition`.
-- Matrix Multiplication: a foundational optimization example for thread mapping, tiling, memory reuse, and shared memory. See `042_naive-matrix-multiply` and `043_tiled-matrix-multiply`.
-- Image Processing: useful for learning 2D grids and pixel mapping strategies. See `012_rgb-to-grayscale`, `049_gaussian-blur`, `061_image-resize-nearest-neighbor`, and `062_image-resize-bilinear`.
-- Parallel Reduction: core PMPP material for collapsing large datasets into one answer while studying divergence and shared-memory optimization. See `023_sum-reduction`, `024_max-reduction`, and `025_min-reduction`.
+- CUDA Toolkit with `nvcc` is installed and on `PATH`
+- examples target C++17
+- benchmark output is illustrative and meant for local comparison, not publication-grade performance claims
 
-## Recommended Core Path
+## Benchmarking Philosophy
 
-If you want the shortest high-value CUDA study sequence in this repo, start with these:
+Correctness first, then performance. The examples use deterministic inputs, CPU reference checks, and a lightweight warmup plus timed-iteration pattern so small changes can be compared without hiding the algorithm. These are educational microbenchmarks. They are useful for studying memory behavior, synchronization costs, and baseline-versus-improved structure, but they are not substitutes for production benchmarking on controlled hardware.
 
-1. `002_vector-addition`
-   Learn the host/device programming loop: `cudaMalloc`, `cudaMemcpy`, kernel launch, and validation.
-2. `042_naive-matrix-multiply`
-   Learn output mapping and baseline global-memory behavior before optimization.
-3. `043_tiled-matrix-multiply`
-   Learn tiling, shared memory, synchronization, and data reuse.
-4. `012_rgb-to-grayscale`
-   Learn 2D thread mapping for image data.
-5. `049_gaussian-blur`
-   Learn neighborhood access patterns and weighted image filtering.
-6. `023_sum-reduction`
-   Learn cooperative parallel reduction to a single result.
-7. `024_max-reduction` and `025_min-reduction`
-   Reinforce the same pattern with different operators and validation goals.
+## Progress / Status
 
-## Why These Matter
+Current summary:
 
-- Vector Addition is the CUDA "hello world" because it teaches the full programming workflow with minimal algorithmic noise.
-- Matrix Multiplication is the classic optimization example because it naturally introduces mapping, bandwidth, tiling, and shared memory.
-- Image Processing examples make multidimensional grids and pixel indexing concrete.
-- Parallel Reduction is one of the most important PMPP patterns because it teaches hierarchical cooperation, synchronization, and performance-sensitive control flow.
+| Status | Count | Notes |
+|---|---:|---|
+| Implemented | 96 | Runnable CUDA examples with code and README notes |
+| Template | 4 | Intentionally scaffolded numerically heavy topics: `057-060` |
+| Planned | 0 | The current repo already contains the 100-example sequence |
 
-## Example Index
+Full example index:
 
-| # | Example | Track | Difficulty | Link |
-|---|---|---|---|---|
-| 001 | Hello World Kernel | Foundations | Beginner | [Open](examples/001_hello-world-kernel/README.md) |
-| 002 | Vector Addition | Foundations | Beginner | [Open](examples/002_vector-addition/README.md) |
-| 003 | Vector Subtraction | Foundations | Beginner | [Open](examples/003_vector-subtraction/README.md) |
-| 004 | Scalar Vector Multiply | Foundations | Beginner | [Open](examples/004_scalar-vector-multiply/README.md) |
-| 005 | Elementwise Array Square | Foundations | Beginner | [Open](examples/005_elementwise-array-square/README.md) |
-| 006 | Elementwise Absolute Value | Foundations | Beginner | [Open](examples/006_elementwise-absolute-value/README.md) |
-| 007 | SAXPY | Foundations | Beginner | [Open](examples/007_saxpy/README.md) |
-| 008 | Copy Array Kernel | Foundations | Beginner | [Open](examples/008_copy-array-kernel/README.md) |
-| 009 | Reverse Array | Foundations | Beginner | [Open](examples/009_reverse-array/README.md) |
-| 010 | Clamp Values To Range | Foundations | Beginner | [Open](examples/010_clamp-values-to-range/README.md) |
-| 011 | Threshold Binary Mask | Foundations | Beginner | [Open](examples/011_threshold-binary-mask/README.md) |
-| 012 | RGB To Grayscale | Foundations | Beginner | [Open](examples/012_rgb-to-grayscale/README.md) |
-| 013 | Image Inversion | Foundations | Beginner | [Open](examples/013_image-inversion/README.md) |
-| 014 | Brightness Adjustment | Foundations | Beginner | [Open](examples/014_brightness-adjustment/README.md) |
-| 015 | Contrast Adjustment | Foundations | Beginner | [Open](examples/015_contrast-adjustment/README.md) |
-| 016 | 1D Stencil | Foundations | Intermediate | [Open](examples/016_1d-stencil/README.md) |
-| 017 | 2D Stencil | Foundations | Intermediate | [Open](examples/017_2d-stencil/README.md) |
-| 018 | Matrix Addition | Foundations | Intermediate | [Open](examples/018_matrix-addition/README.md) |
-| 019 | Matrix Transpose Naive | Foundations | Intermediate | [Open](examples/019_matrix-transpose-naive/README.md) |
-| 020 | Matrix Transpose With Shared Memory | Foundations | Intermediate | [Open](examples/020_matrix-transpose-with-shared-memory/README.md) |
-| 021 | Dot Product | Parallel Patterns | Intermediate | [Open](examples/021_dot-product/README.md) |
-| 022 | L2 Norm | Parallel Patterns | Intermediate | [Open](examples/022_l2-norm/README.md) |
-| 023 | Sum Reduction | Parallel Patterns | Intermediate | [Open](examples/023_sum-reduction/README.md) |
-| 024 | Max Reduction | Parallel Patterns | Intermediate | [Open](examples/024_max-reduction/README.md) |
-| 025 | Min Reduction | Parallel Patterns | Intermediate | [Open](examples/025_min-reduction/README.md) |
-| 026 | Prefix Sum Naive Scan | Parallel Patterns | Intermediate | [Open](examples/026_prefix-sum-naive-scan/README.md) |
-| 027 | Prefix Sum Work Efficient Scan | Parallel Patterns | Intermediate | [Open](examples/027_prefix-sum-work-efficient-scan/README.md) |
-| 028 | Histogram Global Atomics | Parallel Patterns | Intermediate | [Open](examples/028_histogram-global-atomics/README.md) |
-| 029 | Histogram Shared Memory | Parallel Patterns | Intermediate | [Open](examples/029_histogram-shared-memory/README.md) |
-| 030 | Stream Compaction | Parallel Patterns | Intermediate | [Open](examples/030_stream-compaction/README.md) |
-| 031 | Gather | Parallel Patterns | Intermediate | [Open](examples/031_gather/README.md) |
-| 032 | Scatter | Parallel Patterns | Intermediate | [Open](examples/032_scatter/README.md) |
-| 033 | Predicate Count | Parallel Patterns | Intermediate | [Open](examples/033_predicate-count/README.md) |
-| 034 | Find First Match | Parallel Patterns | Intermediate | [Open](examples/034_find-first-match/README.md) |
-| 035 | Parallel Even Odd Sort | Parallel Patterns | Intermediate | [Open](examples/035_parallel-even-odd-sort/README.md) |
-| 036 | Bitonic Sort | Parallel Patterns | Intermediate | [Open](examples/036_bitonic-sort/README.md) |
-| 037 | Odd Even Merge Sort | Parallel Patterns | Intermediate | [Open](examples/037_odd-even-merge-sort/README.md) |
-| 038 | Parallel Binary Search Over Sorted Chunks | Parallel Patterns | Intermediate | [Open](examples/038_parallel-binary-search-over-sorted-chunks/README.md) |
-| 039 | Merge Two Sorted Arrays | Parallel Patterns | Intermediate | [Open](examples/039_merge-two-sorted-arrays/README.md) |
-| 040 | Top K Selection | Parallel Patterns | Intermediate | [Open](examples/040_top-k-selection/README.md) |
-| 041 | Matrix Vector Multiply | Linear Algebra | Intermediate | [Open](examples/041_matrix-vector-multiply/README.md) |
-| 042 | Naive Matrix Multiply | Linear Algebra | Intermediate | [Open](examples/042_naive-matrix-multiply/README.md) |
-| 043 | Tiled Matrix Multiply | Linear Algebra | Intermediate | [Open](examples/043_tiled-matrix-multiply/README.md) |
-| 044 | Batched Matrix Multiply | Linear Algebra | Intermediate | [Open](examples/044_batched-matrix-multiply/README.md) |
-| 045 | Convolution 1D | Linear Algebra | Intermediate | [Open](examples/045_convolution-1d/README.md) |
-| 046 | Convolution 2D | Linear Algebra | Intermediate | [Open](examples/046_convolution-2d/README.md) |
-| 047 | Separable Convolution | Linear Algebra | Intermediate | [Open](examples/047_separable-convolution/README.md) |
-| 048 | Sobel Edge Detection | Linear Algebra | Intermediate | [Open](examples/048_sobel-edge-detection/README.md) |
-| 049 | Gaussian Blur | Linear Algebra | Intermediate | [Open](examples/049_gaussian-blur/README.md) |
-| 050 | Median Filter | Linear Algebra | Intermediate | [Open](examples/050_median-filter/README.md) |
-| 051 | Box Filter With Shared Memory | Linear Algebra | Advanced | [Open](examples/051_box-filter-with-shared-memory/README.md) |
-| 052 | Sparse Matrix Vector Multiply CSR | Linear Algebra | Advanced | [Open](examples/052_sparse-matrix-vector-multiply-csr/README.md) |
-| 053 | Sparse Matrix Dense Vector Multiply | Linear Algebra | Advanced | [Open](examples/053_sparse-matrix-dense-vector-multiply/README.md) |
-| 054 | Jacobi Iteration | Linear Algebra | Advanced | [Open](examples/054_jacobi-iteration/README.md) |
-| 055 | Red Black Relaxation | Linear Algebra | Advanced | [Open](examples/055_red-black-relaxation/README.md) |
-| 056 | Power Iteration | Linear Algebra | Advanced | [Open](examples/056_power-iteration/README.md) |
-| 057 | LU Factorization Sketch | Linear Algebra | Advanced | [Open](examples/057_lu-factorization-sketch/README.md) |
-| 058 | Cholesky Factorization | Linear Algebra | Advanced | [Open](examples/058_cholesky-factorization/README.md) |
-| 059 | QR Factorization Sketch | Linear Algebra | Advanced | [Open](examples/059_qr-factorization-sketch/README.md) |
-| 060 | FFT Based Convolution | Linear Algebra | Advanced | [Open](examples/060_fft-based-convolution/README.md) |
-| 061 | Image Resize Nearest Neighbor | Image and Signal | Advanced | [Open](examples/061_image-resize-nearest-neighbor/README.md) |
-| 062 | Image Resize Bilinear | Image and Signal | Advanced | [Open](examples/062_image-resize-bilinear/README.md) |
-| 063 | Template Matching | Image and Signal | Advanced | [Open](examples/063_template-matching/README.md) |
-| 064 | Non Maximum Suppression | Image and Signal | Advanced | [Open](examples/064_non-maximum-suppression/README.md) |
-| 065 | Integral Image | Image and Signal | Advanced | [Open](examples/065_integral-image/README.md) |
-| 066 | Canny Pipeline Stages | Image and Signal | Advanced | [Open](examples/066_canny-pipeline-stages/README.md) |
-| 067 | Audio Gain And Mixing | Image and Signal | Advanced | [Open](examples/067_audio-gain-and-mixing/README.md) |
-| 068 | FIR Filter | Image and Signal | Advanced | [Open](examples/068_fir-filter/README.md) |
-| 069 | IIR Filter Sections | Image and Signal | Advanced | [Open](examples/069_iir-filter-sections/README.md) |
-| 070 | Spectrogram With FFT | Image and Signal | Advanced | [Open](examples/070_spectrogram-with-fft/README.md) |
-| 071 | Peak Detection | Image and Signal | Advanced | [Open](examples/071_peak-detection/README.md) |
-| 072 | Delta Encoding | Image and Signal | Advanced | [Open](examples/072_delta-encoding/README.md) |
-| 073 | Run Length Encoding | Image and Signal | Advanced | [Open](examples/073_run-length-encoding/README.md) |
-| 074 | Parallel Base64 Or Hex Encode | Image and Signal | Advanced | [Open](examples/074_parallel-base64-or-hex-encode/README.md) |
-| 075 | Block CRC Checksum | Image and Signal | Advanced | [Open](examples/075_block-crc-checksum/README.md) |
-| 076 | Monte Carlo Pi | Simulation | Advanced | [Open](examples/076_monte-carlo-pi/README.md) |
-| 077 | Monte Carlo Option Pricing | Simulation | Advanced | [Open](examples/077_monte-carlo-option-pricing/README.md) |
-| 078 | Random Walk Simulation | Simulation | Advanced | [Open](examples/078_random-walk-simulation/README.md) |
-| 079 | N Body Naive | Simulation | Advanced | [Open](examples/079_n-body-naive/README.md) |
-| 080 | N Body Tiled | Simulation | Advanced | [Open](examples/080_n-body-tiled/README.md) |
-| 081 | Lennard Jones Forces | Simulation | Advanced | [Open](examples/081_lennard-jones-forces/README.md) |
-| 082 | Heat Diffusion Grid | Simulation | Advanced | [Open](examples/082_heat-diffusion-grid/README.md) |
-| 083 | Wave Equation Solver | Simulation | Advanced | [Open](examples/083_wave-equation-solver/README.md) |
-| 084 | Lattice Boltzmann Step | Simulation | Advanced | [Open](examples/084_lattice-boltzmann-step/README.md) |
-| 085 | Game Of Life | Simulation | Advanced | [Open](examples/085_game-of-life/README.md) |
-| 086 | Boids Flocking | Simulation | Advanced | [Open](examples/086_boids-flocking/README.md) |
-| 087 | Mandelbrot Renderer | Simulation | Advanced | [Open](examples/087_mandelbrot-renderer/README.md) |
-| 088 | Julia Renderer | Simulation | Advanced | [Open](examples/088_julia-renderer/README.md) |
-| 089 | Ray Sphere Tracer | Simulation | Advanced | [Open](examples/089_ray-sphere-tracer/README.md) |
-| 090 | Path Tracing Diffuse Scene | Simulation | Advanced | [Open](examples/090_path-tracing-diffuse-scene/README.md) |
-| 091 | Parallel BFS | Graph and ML | Advanced | [Open](examples/091_parallel-bfs/README.md) |
-| 092 | Single Source Shortest Path | Graph and ML | Advanced | [Open](examples/092_single-source-shortest-path/README.md) |
-| 093 | PageRank | Graph and ML | Advanced | [Open](examples/093_pagerank/README.md) |
-| 094 | Connected Components | Graph and ML | Advanced | [Open](examples/094_connected-components/README.md) |
-| 095 | Union Find | Graph and ML | Advanced | [Open](examples/095_union-find/README.md) |
-| 096 | K Means Clustering | Graph and ML | Advanced | [Open](examples/096_k-means-clustering/README.md) |
-| 097 | DBSCAN Acceleration | Graph and ML | Advanced | [Open](examples/097_dbscan-acceleration/README.md) |
-| 098 | Neural Network Forward Pass | Graph and ML | Advanced | [Open](examples/098_neural-network-forward-pass/README.md) |
-| 099 | MLP Backpropagation | Graph and ML | Advanced | [Open](examples/099_mlp-backpropagation/README.md) |
-| 100 | Multi GPU All Reduce Study | Graph and ML | Advanced | [Open](examples/100_multi-gpu-all-reduce-study/README.md) |
+| Example | Name | Category | Status |
+|---|---|---|---|
+| 001 | Hello World Kernel | Foundations | Implemented |
+| 002 | Vector Addition | Foundations | Implemented |
+| 003 | Vector Subtraction | Foundations | Implemented |
+| 004 | Scalar Vector Multiply | Foundations | Implemented |
+| 005 | Elementwise Array Square | Foundations | Implemented |
+| 006 | Elementwise Absolute Value | Foundations | Implemented |
+| 007 | Saxpy | Foundations | Implemented |
+| 008 | Copy Array Kernel | Foundations | Implemented |
+| 009 | Reverse Array | Foundations | Implemented |
+| 010 | Clamp Values To Range | Foundations | Implemented |
+| 011 | Threshold Binary Mask | Foundations | Implemented |
+| 012 | Rgb To Grayscale | Foundations | Implemented |
+| 013 | Image Inversion | Foundations | Implemented |
+| 014 | Brightness Adjustment | Foundations | Implemented |
+| 015 | Contrast Adjustment | Foundations | Implemented |
+| 016 | 1d Stencil | Foundations | Implemented |
+| 017 | 2d Stencil | Foundations | Implemented |
+| 018 | Matrix Addition | Foundations | Implemented |
+| 019 | Matrix Transpose Naive | Foundations | Implemented |
+| 020 | Matrix Transpose With Shared Memory | Foundations | Implemented |
+| 021 | Dot Product | Parallel Patterns | Implemented |
+| 022 | L2 Norm | Parallel Patterns | Implemented |
+| 023 | Sum Reduction | Parallel Patterns | Implemented |
+| 024 | Max Reduction | Parallel Patterns | Implemented |
+| 025 | Min Reduction | Parallel Patterns | Implemented |
+| 026 | Prefix Sum Naive Scan | Parallel Patterns | Implemented |
+| 027 | Prefix Sum Work Efficient Scan | Parallel Patterns | Implemented |
+| 028 | Histogram Global Atomics | Parallel Patterns | Implemented |
+| 029 | Histogram Shared Memory | Parallel Patterns | Implemented |
+| 030 | Stream Compaction | Parallel Patterns | Implemented |
+| 031 | Gather | Parallel Patterns | Implemented |
+| 032 | Scatter | Parallel Patterns | Implemented |
+| 033 | Predicate Count | Parallel Patterns | Implemented |
+| 034 | Find First Match | Parallel Patterns | Implemented |
+| 035 | Parallel Even Odd Sort | Parallel Patterns | Implemented |
+| 036 | Bitonic Sort | Parallel Patterns | Implemented |
+| 037 | Odd Even Merge Sort | Parallel Patterns | Implemented |
+| 038 | Parallel Binary Search Over Sorted Chunks | Parallel Patterns | Implemented |
+| 039 | Merge Two Sorted Arrays | Parallel Patterns | Implemented |
+| 040 | Top K Selection | Parallel Patterns | Implemented |
+| 041 | Matrix Vector Multiply | Linear Algebra | Implemented |
+| 042 | Naive Matrix Multiply | Linear Algebra | Implemented |
+| 043 | Tiled Matrix Multiply | Linear Algebra | Implemented |
+| 044 | Batched Matrix Multiply | Linear Algebra | Implemented |
+| 045 | Convolution 1d | Linear Algebra | Implemented |
+| 046 | Convolution 2d | Linear Algebra | Implemented |
+| 047 | Separable Convolution | Linear Algebra | Implemented |
+| 048 | Sobel Edge Detection | Linear Algebra | Implemented |
+| 049 | Gaussian Blur | Linear Algebra | Implemented |
+| 050 | Median Filter | Linear Algebra | Implemented |
+| 051 | Box Filter With Shared Memory | Linear Algebra | Implemented |
+| 052 | Sparse Matrix Vector Multiply Csr | Linear Algebra | Implemented |
+| 053 | Sparse Matrix Dense Vector Multiply | Linear Algebra | Implemented |
+| 054 | Jacobi Iteration | Linear Algebra | Implemented |
+| 055 | Red Black Relaxation | Linear Algebra | Implemented |
+| 056 | Power Iteration | Linear Algebra | Implemented |
+| 057 | Lu Factorization Sketch | Linear Algebra | Template |
+| 058 | Cholesky Factorization | Linear Algebra | Template |
+| 059 | Qr Factorization Sketch | Linear Algebra | Template |
+| 060 | Fft Based Convolution | Linear Algebra | Template |
+| 061 | Image Resize Nearest Neighbor | Image And Signal | Implemented |
+| 062 | Image Resize Bilinear | Image And Signal | Implemented |
+| 063 | Template Matching | Image And Signal | Implemented |
+| 064 | Non Maximum Suppression | Image And Signal | Implemented |
+| 065 | Integral Image | Image And Signal | Implemented |
+| 066 | Canny Pipeline Stages | Image And Signal | Implemented |
+| 067 | Audio Gain And Mixing | Image And Signal | Implemented |
+| 068 | Fir Filter | Image And Signal | Implemented |
+| 069 | Iir Filter Sections | Image And Signal | Implemented |
+| 070 | Spectrogram With Fft | Image And Signal | Implemented |
+| 071 | Peak Detection | Image And Signal | Implemented |
+| 072 | Delta Encoding | Image And Signal | Implemented |
+| 073 | Run Length Encoding | Image And Signal | Implemented |
+| 074 | Parallel Base64 Or Hex Encode | Image And Signal | Implemented |
+| 075 | Block Crc Checksum | Image And Signal | Implemented |
+| 076 | Monte Carlo Pi | Simulation | Implemented |
+| 077 | Monte Carlo Option Pricing | Simulation | Implemented |
+| 078 | Random Walk Simulation | Simulation | Implemented |
+| 079 | N Body Naive | Simulation | Implemented |
+| 080 | N Body Tiled | Simulation | Implemented |
+| 081 | Lennard Jones Forces | Simulation | Implemented |
+| 082 | Heat Diffusion Grid | Simulation | Implemented |
+| 083 | Wave Equation Solver | Simulation | Implemented |
+| 084 | Lattice Boltzmann Step | Simulation | Implemented |
+| 085 | Game Of Life | Simulation | Implemented |
+| 086 | Boids Flocking | Simulation | Implemented |
+| 087 | Mandelbrot Renderer | Simulation | Implemented |
+| 088 | Julia Renderer | Simulation | Implemented |
+| 089 | Ray Sphere Tracer | Simulation | Implemented |
+| 090 | Path Tracing Diffuse Scene | Simulation | Implemented |
+| 091 | Parallel Bfs | Graph And ML | Implemented |
+| 092 | Single Source Shortest Path | Graph And ML | Implemented |
+| 093 | Pagerank | Graph And ML | Implemented |
+| 094 | Connected Components | Graph And ML | Implemented |
+| 095 | Union Find | Graph And ML | Implemented |
+| 096 | K Means Clustering | Graph And ML | Implemented |
+| 097 | Dbscan Acceleration | Graph And ML | Implemented |
+| 098 | Neural Network Forward Pass | Graph And ML | Implemented |
+| 099 | Mlp Backpropagation | Graph And ML | Implemented |
+| 100 | Multi Gpu All Reduce Study | Graph And ML | Implemented |
+
+## Supporting Docs
+
+- [docs/example-conventions.md](docs/example-conventions.md)
+- [docs/maturity-model.md](docs/maturity-model.md)
+- [docs/status.md](docs/status.md)
+- [scripts/validate_repo.py](scripts/validate_repo.py)
+- [scripts/build_examples.py](scripts/build_examples.py)
