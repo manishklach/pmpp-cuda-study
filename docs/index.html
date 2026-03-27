@@ -33,7 +33,7 @@
             <p class="eyebrow">CUDA Study Library</p>
             <h1>PMPP CUDA Study</h1>
             <p class="hero-text">
-              150 CUDA examples: 100 core PMPP-style examples plus 50 advanced studies.
+              150 CUDA examples: 100 core PMPP-style examples + 50 advanced studies.
             </p>
             <p class="hero-subtext">Run, validate, inspect, optimize.</p>
             <p class="hero-detail">
@@ -68,9 +68,9 @@
               <div class="board-track">
                 <div class="board-track-head">
                   <span class="board-chip">Core track</span>
-                  <span class="board-label">Foundations to graph / ML basics</span>
+                  <span class="board-label">Structured foundations through advanced workloads</span>
                 </div>
-                <div class="tile-row">
+                <div class="tile-row tile-row-six">
                   <div class="track-tile tile-strong">
                     <strong>001-020</strong>
                     <span>Foundations</span>
@@ -84,35 +84,90 @@
                     <span>Linear algebra</span>
                   </div>
                   <div class="track-tile">
-                    <strong>061-100</strong>
-                    <span>Broader workloads</span>
+                    <strong>061-075</strong>
+                    <span>Image / signal</span>
+                  </div>
+                  <div class="track-tile">
+                    <strong>076-100</strong>
+                    <span>Advanced workloads</span>
+                  </div>
+                  <div class="track-tile">
+                    <strong>101-150</strong>
+                    <span>Advanced studies</span>
                   </div>
                 </div>
               </div>
 
               <div class="board-diagram">
-                <div class="diagram-grid">
-                  <div class="diagram-block">
-                    <span class="diagram-title">Thread block</span>
-                    <div class="mini-grid">
-                      <span></span><span></span><span></span><span></span>
-                      <span></span><span></span><span></span><span></span>
-                      <span></span><span></span><span></span><span></span>
-                      <span></span><span></span><span></span><span></span>
-                    </div>
-                  </div>
-                  <div class="diagram-memory">
-                    <div class="memory-card memory-global">
-                      <strong>Global memory</strong>
-                      <span>contiguous loads</span>
-                    </div>
-                    <div class="memory-arrow"></div>
-                    <div class="memory-card memory-shared">
-                      <strong>Shared tile</strong>
-                      <span>cooperative reuse</span>
-                    </div>
-                  </div>
-                </div>
+                <svg class="hero-svg" viewBox="0 0 640 280" role="img">
+                  <defs>
+                    <linearGradient id="tileFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#eef6ff" />
+                      <stop offset="100%" stop-color="#d8ebff" />
+                    </linearGradient>
+                    <linearGradient id="sharedFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#f2fbf5" />
+                      <stop offset="100%" stop-color="#ddf5e6" />
+                    </linearGradient>
+                    <linearGradient id="laneFill" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#f7fafc" />
+                      <stop offset="100%" stop-color="#edf4fa" />
+                    </linearGradient>
+                    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
+                      <path d="M0,0 L0,6 L7,3 z" fill="#0e6eb8" />
+                    </marker>
+                  </defs>
+
+                  <rect x="18" y="18" width="604" height="244" rx="22" fill="#ffffff" stroke="#d7e0ea" />
+
+                  <rect x="42" y="40" width="204" height="174" rx="18" fill="#f9fbfe" stroke="#d7e0ea" />
+                  <text x="60" y="68" class="svg-title">Execution grid</text>
+                  <text x="60" y="90" class="svg-subtitle">Two blocks mapped over a larger problem</text>
+
+                  <rect x="60" y="112" width="72" height="72" rx="14" fill="url(#tileFill)" stroke="#9bc6ef" />
+                  <rect x="150" y="112" width="72" height="72" rx="14" fill="url(#tileFill)" stroke="#9bc6ef" />
+                  <g class="svg-cells">
+                    <rect x="72" y="124" width="12" height="12" rx="4" />
+                    <rect x="88" y="124" width="12" height="12" rx="4" />
+                    <rect x="104" y="124" width="12" height="12" rx="4" />
+                    <rect x="120" y="124" width="12" height="12" rx="4" />
+                    <rect x="72" y="140" width="12" height="12" rx="4" />
+                    <rect x="88" y="140" width="12" height="12" rx="4" />
+                    <rect x="104" y="140" width="12" height="12" rx="4" />
+                    <rect x="120" y="140" width="12" height="12" rx="4" />
+                    <rect x="162" y="124" width="12" height="12" rx="4" />
+                    <rect x="178" y="124" width="12" height="12" rx="4" />
+                    <rect x="194" y="124" width="12" height="12" rx="4" />
+                    <rect x="210" y="124" width="12" height="12" rx="4" />
+                    <rect x="162" y="140" width="12" height="12" rx="4" />
+                    <rect x="178" y="140" width="12" height="12" rx="4" />
+                    <rect x="194" y="140" width="12" height="12" rx="4" />
+                    <rect x="210" y="140" width="12" height="12" rx="4" />
+                  </g>
+                  <text x="74" y="198" class="svg-caption">Block (0,0)</text>
+                  <text x="164" y="198" class="svg-caption">Block (0,1)</text>
+
+                  <rect x="266" y="40" width="158" height="174" rx="18" fill="#f9fbfe" stroke="#d7e0ea" />
+                  <text x="284" y="68" class="svg-title">Memory movement</text>
+                  <text x="284" y="90" class="svg-subtitle">Coalesced loads become block-local reuse</text>
+                  <rect x="286" y="112" width="118" height="28" rx="10" fill="url(#laneFill)" stroke="#d7e0ea" />
+                  <rect x="286" y="152" width="118" height="38" rx="14" fill="url(#sharedFill)" stroke="#9ed0b1" />
+                  <line x1="345" y1="140" x2="345" y2="152" stroke="#0e6eb8" stroke-width="3" marker-end="url(#arrowHead)" />
+                  <text x="301" y="130" class="svg-caption">Global reads</text>
+                  <text x="306" y="176" class="svg-caption">Shared-memory tile</text>
+
+                  <rect x="444" y="40" width="154" height="174" rx="18" fill="#f9fbfe" stroke="#d7e0ea" />
+                  <text x="462" y="68" class="svg-title">Study progression</text>
+                  <text x="462" y="90" class="svg-subtitle">Baseline first, then optimization</text>
+                  <rect x="462" y="112" width="118" height="24" rx="12" class="svg-pill svg-pill-core" />
+                  <rect x="462" y="146" width="118" height="24" rx="12" class="svg-pill svg-pill-opt" />
+                  <rect x="462" y="180" width="118" height="24" rx="12" class="svg-pill svg-pill-adv" />
+                  <text x="478" y="128" class="svg-pill-text">Core kernels</text>
+                  <text x="478" y="162" class="svg-pill-text">Optimization studies</text>
+                  <text x="478" y="196" class="svg-pill-text">Advanced workloads</text>
+
+                  <text x="42" y="244" class="svg-footer">Thread blocks cooperate on tiles, reuse local shared data, and build toward larger workload patterns.</text>
+                </svg>
               </div>
 
               <div class="board-track board-track-advanced">
@@ -175,9 +230,14 @@
               <p>Matrix-vector multiply, naive and tiled GEMM, convolution, sparse operators, and iterative methods.</p>
             </article>
             <article class="path-card">
-              <span class="path-range">061-100</span>
-              <h3>Broader Workloads</h3>
-              <p>Image, signal, simulation, graph, and ML examples that widen the core PMPP-style path.</p>
+              <span class="path-range">061-075</span>
+              <h3>Image / Signal</h3>
+              <p>Resize, filtering, edge detection, signal processing, and encoding-style kernels.</p>
+            </article>
+            <article class="path-card">
+              <span class="path-range">076-100</span>
+              <h3>Advanced Workloads</h3>
+              <p>Simulation, rendering, graph traversal, clustering, and ML-oriented kernels in the core track.</p>
             </article>
             <article class="path-card path-card-accent">
               <span class="path-range">101-150</span>
