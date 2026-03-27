@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="PMPP CUDA Study icon">
+  <rect width="128" height="128" rx="28" fill="#f3f7fb"/>
+  <rect x="20" y="20" width="88" height="88" rx="20" fill="#ffffff" stroke="#d7e0ea" stroke-width="4"/>
+  <rect x="34" y="34" width="24" height="24" rx="7" fill="#dfeeff" stroke="#0e6eb8" stroke-width="3"/>
+  <rect x="70" y="34" width="24" height="24" rx="7" fill="#dfeeff" stroke="#0e6eb8" stroke-width="3"/>
+  <rect x="34" y="70" width="24" height="24" rx="7" fill="#eef8ef" stroke="#4d9798" stroke-width="3"/>
+  <rect x="70" y="70" width="24" height="24" rx="7" fill="#eef8ef" stroke="#4d9798" stroke-width="3"/>
+</svg>

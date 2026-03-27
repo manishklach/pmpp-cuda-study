@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="PMPP CUDA Study social preview">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fbff"/>
+      <stop offset="100%" stop-color="#edf4fb"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eef6ff"/>
+      <stop offset="100%" stop-color="#d8ebff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="60" y="60" width="1080" height="510" rx="34" fill="#ffffff" stroke="#d7e0ea" stroke-width="4"/>
+  <text x="100" y="162" fill="#0e6eb8" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="4">CUDA STUDY LIBRARY</text>
+  <text x="100" y="248" fill="#0f2236" font-family="Segoe UI, Arial, sans-serif" font-size="70" font-weight="800">PMPP CUDA Study</text>
+  <text x="100" y="318" fill="#56687b" font-family="Segoe UI, Arial, sans-serif" font-size="34">150 CUDA examples: 100 core PMPP-style examples + 50 advanced studies.</text>
+  <text x="100" y="370" fill="#56687b" font-family="Segoe UI, Arial, sans-serif" font-size="28">Run, validate, inspect, optimize.</text>
+  <rect x="760" y="128" width="120" height="120" rx="24" fill="url(#tile)" stroke="#9bc6ef" stroke-width="4"/>
+  <rect x="904" y="128" width="120" height="120" rx="24" fill="url(#tile)" stroke="#9bc6ef" stroke-width="4"/>
+  <rect x="760" y="272" width="264" height="72" rx="24" fill="#eef8ef" stroke="#9ed0b1" stroke-width="4"/>
+  <rect x="760" y="380" width="264" height="32" rx="16" fill="#edf4fa"/>
+  <rect x="760" y="430" width="264" height="32" rx="16" fill="#edf4fa"/>
+  <rect x="760" y="480" width="264" height="32" rx="16" fill="#edf4fa"/>
+  <text x="804" y="317" fill="#21613f" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Shared reuse</text>
+</svg>
