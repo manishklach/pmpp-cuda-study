@@ -1,0 +1,15 @@
+number: 123
+slug: jagged-diagonal-spmv
+title: Jagged Diagonal SpMV
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Explore a jagged-diagonal sparse matrix layout.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

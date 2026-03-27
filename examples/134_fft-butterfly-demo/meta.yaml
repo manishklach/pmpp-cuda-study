@@ -1,0 +1,15 @@
+number: 134
+slug: fft-butterfly-demo
+title: Fft Butterfly Demo
+module: advanced-studies
+category: imaging-simulation
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Visualize or study one stage of an FFT butterfly.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

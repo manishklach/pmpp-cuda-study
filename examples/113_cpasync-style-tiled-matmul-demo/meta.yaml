@@ -1,0 +1,15 @@
+number: 113
+slug: cpasync-style-tiled-matmul-demo
+title: CpAsync Style Tiled Matmul Demo
+module: advanced-studies
+category: memory-tiling-optimization
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Study the structure of an asynchronous-tiling GEMM pipeline without requiring hardware-specific features.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

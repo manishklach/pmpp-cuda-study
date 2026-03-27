@@ -1,0 +1,15 @@
+number: 103
+slug: two-phase-reduction
+title: Two Phase Reduction
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Stage a large reduction through block partials and a second aggregation phase.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

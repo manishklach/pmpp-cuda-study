@@ -1,0 +1,12 @@
+number: 112
+slug: warp-shuffle-scan
+title: Warp Shuffle Scan
+module: advanced-studies
+category: memory-tiling-optimization
+difficulty: advanced
+status: fully_mature
+maturity_level: 6
+
+validation:
+  type: cpu_reference
+  tolerance: 0

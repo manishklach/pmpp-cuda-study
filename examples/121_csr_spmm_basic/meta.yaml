@@ -1,0 +1,15 @@
+number: 121
+slug: csr_spmm_basic
+title: CSR_SpMM_Basic
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Multiply a CSR sparse matrix by a dense matrix.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

@@ -1,0 +1,15 @@
+number: 129
+slug: spatial-hashing-nearest-cell
+title: Spatial Hashing Nearest Cell
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Map points into hashed spatial cells as a prelude to local-neighborhood search.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

@@ -1,0 +1,15 @@
+number: 127
+slug: graph-pagerank-iteration
+title: Graph Pagerank Iteration
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Run one or more PageRank iterations over a small graph.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

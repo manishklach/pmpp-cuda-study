@@ -1,0 +1,15 @@
+number: 126
+slug: triangle-counting-basic
+title: Triangle Counting Basic
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Count graph triangles with a basic neighbor-intersection strategy.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

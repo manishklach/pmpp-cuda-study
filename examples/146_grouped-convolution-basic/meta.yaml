@@ -1,0 +1,15 @@
+number: 146
+slug: grouped-convolution-basic
+title: Grouped Convolution Basic
+module: advanced-studies
+category: ml-practical-kernels
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Study a simple grouped convolution structure.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

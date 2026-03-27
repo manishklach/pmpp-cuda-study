@@ -6,7 +6,7 @@
     <title>PMPP CUDA Study</title>
     <meta
       name="description"
-      content="A structured CUDA study repository with 100 PMPP-style examples from beginner kernels to advanced parallel workloads."
+      content="150 CUDA examples: 100 core PMPP-style examples plus 50 advanced studies."
     />
     <link rel="stylesheet" href="./site.css" />
   </head>
@@ -21,7 +21,7 @@
           <a href="#why">Why</a>
           <a href="#path">Path</a>
           <a href="#featured">Examples</a>
-          <a href="#starting-points">Start Here</a>
+          <a href="#advanced">Advanced</a>
           <a href="#maturity">Maturity</a>
           <a href="#study">Study Workflow</a>
         </nav>
@@ -33,14 +33,13 @@
             <p class="eyebrow">CUDA Study Library</p>
             <h1>PMPP CUDA Study</h1>
             <p class="hero-text">
-              A structured CUDA study repository with 100 PMPP-style examples from beginner
-              kernels to advanced parallel workloads.
+              150 CUDA examples: 100 core PMPP-style examples plus 50 advanced studies.
             </p>
             <p class="hero-subtext">Run, validate, inspect, optimize.</p>
             <p class="hero-detail">
-              Built as a technical study path rather than a sample dump: deterministic inputs, CPU
-              reference checks, comments around mapping and memory behavior, and matched baseline
-              versus improved kernels where the comparison teaches something real.
+              Built as a study library rather than a sample dump: deterministic inputs, CPU
+              reference checks, comments around mapping and memory behavior, and advanced follow-on
+              studies that build on the core patterns instead of replacing them.
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="https://github.com/manishklach/pmpp-cuda-study"
@@ -50,67 +49,83 @@
             </div>
             <div class="hero-meta">
               <div>
-                <span class="meta-label">Examples</span>
-                <strong>100 total</strong>
+                <span class="meta-label">Core track</span>
+                <strong>001-100</strong>
               </div>
               <div>
-                <span class="meta-label">Implemented</span>
-                <strong>96 runnable</strong>
+                <span class="meta-label">Advanced studies</span>
+                <strong>101-150</strong>
               </div>
               <div>
-                <span class="meta-label">Focus</span>
-                <strong>Correctness first</strong>
+                <span class="meta-label">Current maturity</span>
+                <strong>110 implemented</strong>
               </div>
             </div>
           </div>
 
           <div class="hero-visual" aria-hidden="true">
             <div class="hero-board">
-              <div class="hero-board-top">
-                <span class="board-label">Execution Grid</span>
-                <span class="board-note">Blocks load tiles, then reuse them in shared memory</span>
+              <div class="board-track">
+                <div class="board-track-head">
+                  <span class="board-chip">Core track</span>
+                  <span class="board-label">Foundations to graph / ML basics</span>
+                </div>
+                <div class="tile-row">
+                  <div class="track-tile tile-strong">
+                    <strong>001-020</strong>
+                    <span>Foundations</span>
+                  </div>
+                  <div class="track-tile">
+                    <strong>021-040</strong>
+                    <span>Patterns</span>
+                  </div>
+                  <div class="track-tile">
+                    <strong>041-060</strong>
+                    <span>Linear algebra</span>
+                  </div>
+                  <div class="track-tile">
+                    <strong>061-100</strong>
+                    <span>Broader workloads</span>
+                  </div>
+                </div>
               </div>
-              <div class="hero-grid">
-                <div class="block block-a">
-                  <span class="block-title">Block (0,0)</span>
-                  <div class="mini-grid">
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
+
+              <div class="board-diagram">
+                <div class="diagram-grid">
+                  <div class="diagram-block">
+                    <span class="diagram-title">Thread block</span>
+                    <div class="mini-grid">
+                      <span></span><span></span><span></span><span></span>
+                      <span></span><span></span><span></span><span></span>
+                      <span></span><span></span><span></span><span></span>
+                      <span></span><span></span><span></span><span></span>
+                    </div>
+                  </div>
+                  <div class="diagram-memory">
+                    <div class="memory-card memory-global">
+                      <strong>Global memory</strong>
+                      <span>contiguous loads</span>
+                    </div>
+                    <div class="memory-arrow"></div>
+                    <div class="memory-card memory-shared">
+                      <strong>Shared tile</strong>
+                      <span>cooperative reuse</span>
+                    </div>
                   </div>
                 </div>
-                <div class="block block-b">
-                  <span class="block-title">Block (0,1)</span>
-                  <div class="mini-grid">
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
-                  </div>
+              </div>
+
+              <div class="board-track board-track-advanced">
+                <div class="board-track-head">
+                  <span class="board-chip board-chip-accent">Advanced studies</span>
+                  <span class="board-label">Deeper optimization and practical kernels</span>
                 </div>
-                <div class="memory-stack">
-                  <div class="memory-card">
-                    <span>Global memory</span>
-                    <div class="memory-line memory-line-global"></div>
-                  </div>
-                  <div class="memory-card memory-card-accent">
-                    <span>Shared tile</span>
-                    <div class="memory-line memory-line-shared"></div>
-                  </div>
-                  <div class="memory-card">
-                    <span>Output tile</span>
-                    <div class="memory-line memory-line-output"></div>
-                  </div>
-                </div>
-                <div class="progression-card">
-                  <span class="board-label">Example progression</span>
-                  <div class="progression-track">
-                    <div><strong>001-020</strong><span>Foundations</span></div>
-                    <div><strong>021-040</strong><span>Patterns</span></div>
-                    <div><strong>041-060</strong><span>Linear algebra</span></div>
-                    <div><strong>061-100</strong><span>Broader workloads</span></div>
-                  </div>
+                <div class="advanced-grid">
+                  <div class="advanced-pill">Warp / atomics / scan</div>
+                  <div class="advanced-pill">Memory / tiling / optimization</div>
+                  <div class="advanced-pill">Sparse / graph / irregular</div>
+                  <div class="advanced-pill">Imaging / simulation</div>
+                  <div class="advanced-pill">ML / practical kernels</div>
                 </div>
               </div>
             </div>
@@ -120,20 +135,20 @@
         <section class="section-shell section-shell-plain" id="why">
           <div class="section-heading">
             <p class="eyebrow">Why This Repo</p>
-            <h2>Learn CUDA as a sequence of patterns, not isolated demos</h2>
+            <h2>Learn CUDA as a progression of patterns</h2>
           </div>
           <div class="why-grid">
             <article class="info-panel">
-              <h3>Systematic progression</h3>
-              <p>Start with kernel launches and indexing, then move into reduction, scan, histograms, tiling, sparse kernels, imaging, simulation, and graph or ML workloads.</p>
+              <h3>Foundations first</h3>
+              <p>Start with indexing, simple transforms, stencils, reduction, scan, histograms, and dense kernels before jumping into more irregular work.</p>
             </article>
             <article class="info-panel">
-              <h3>Study value over volume</h3>
-              <p>Examples are meant to compile, validate, and be read closely. Comments focus on ownership, memory traffic, synchronization, and the real bottleneck in each kernel.</p>
+              <h3>Correctness before speed</h3>
+              <p>Examples are built to compile, validate, and explain. CPU references, deterministic inputs, and explicit PASS or FAIL output keep the study path grounded.</p>
             </article>
             <article class="info-panel">
-              <h3>Baseline before optimization</h3>
-              <p>Where it matters, the repo keeps a simpler kernel next to a stronger one so improvements feel earned rather than decorative.</p>
+              <h3>Advanced studies with structure</h3>
+              <p>The `101-150` range is a second track for warp-level programming, memory studies, sparse / graph kernels, simulation, and practical ML operators.</p>
             </article>
           </div>
         </section>
@@ -141,7 +156,7 @@
         <section class="section-shell section-shell-tinted" id="path">
           <div class="section-heading">
             <p class="eyebrow">Learning Path</p>
-            <h2>Five stages, one study ladder</h2>
+            <h2>Core curriculum, then advanced studies</h2>
           </div>
           <div class="path-roadmap">
             <article class="path-card">
@@ -160,14 +175,14 @@
               <p>Matrix-vector multiply, naive and tiled GEMM, convolution, sparse operators, and iterative methods.</p>
             </article>
             <article class="path-card">
-              <span class="path-range">061-075</span>
-              <h3>Image / Signal</h3>
-              <p>Resize, filtering, edge detection, integral images, audio processing, and compact encoding kernels.</p>
+              <span class="path-range">061-100</span>
+              <h3>Broader Workloads</h3>
+              <p>Image, signal, simulation, graph, and ML examples that widen the core PMPP-style path.</p>
             </article>
-            <article class="path-card">
-              <span class="path-range">076-100</span>
-              <h3>Advanced Workloads</h3>
-              <p>Simulation, rendering, graph kernels, clustering, and neural-network-oriented examples.</p>
+            <article class="path-card path-card-accent">
+              <span class="path-range">101-150</span>
+              <h3>Advanced Studies</h3>
+              <p>Warp primitives, memory studies, sparse / irregular kernels, imaging, simulation, and practical ML operators.</p>
             </article>
           </div>
         </section>
@@ -175,7 +190,7 @@
         <section class="section-shell section-shell-featured" id="featured">
           <div class="section-heading">
             <p class="eyebrow">Featured Examples</p>
-            <h2>The strongest public-facing examples in the repo</h2>
+            <h2>A curated cross-section of the repo</h2>
           </div>
           <div class="cards-grid">
             <article class="example-card">
@@ -186,82 +201,116 @@
               <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/002_vector-addition">View on GitHub</a>
             </article>
             <article class="example-card">
-              <div class="card-top"><span class="example-id">020</span><span class="badge">Shared Memory</span></div>
-              <h3>Matrix Transpose with Shared Memory</h3>
-              <p class="card-summary">Cooperative tiling and padded shared memory in a compact 2D kernel.</p>
-              <p class="why-it-matters">Why it matters: an early example where layout and memory behavior are unmistakable.</p>
-              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/020_matrix-transpose-with-shared-memory">View on GitHub</a>
-            </article>
-            <article class="example-card">
               <div class="card-top"><span class="example-id">023</span><span class="badge">Reduction</span></div>
               <h3>Sum Reduction</h3>
-              <p class="card-summary">Interleaved and lower-divergence reduction layouts side by side.</p>
-              <p class="why-it-matters">Why it matters: a core PMPP pattern with useful synchronization commentary.</p>
+              <p class="card-summary">Interleaved and lower-divergence reductions side by side.</p>
+              <p class="why-it-matters">Why it matters: reduction is the pattern that keeps returning later.</p>
               <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/023_sum-reduction">View on GitHub</a>
-            </article>
-            <article class="example-card">
-              <div class="card-top"><span class="example-id">028</span><span class="badge">Atomics</span></div>
-              <h3>Histogram with Global Atomics</h3>
-              <p class="card-summary">A direct irregular-write baseline with visible bin contention.</p>
-              <p class="why-it-matters">Why it matters: it makes the cost of simple correctness easy to see.</p>
-              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/028_histogram-global-atomics">View on GitHub</a>
             </article>
             <article class="example-card">
               <div class="card-top"><span class="example-id">029</span><span class="badge">Privatization</span></div>
               <h3>Histogram with Shared Memory</h3>
-              <p class="card-summary">Per-block privatization reduces global-atomic pressure before the flush.</p>
-              <p class="why-it-matters">Why it matters: a concrete contention tradeoff, not an abstract optimization.</p>
+              <p class="card-summary">Per-block privatization reduces global atomic pressure before the flush.</p>
+              <p class="why-it-matters">Why it matters: contention tradeoffs become visible instead of abstract.</p>
               <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/029_histogram-shared-memory">View on GitHub</a>
-            </article>
-            <article class="example-card">
-              <div class="card-top"><span class="example-id">042</span><span class="badge">Linear Algebra</span></div>
-              <h3>Naive Matrix Multiply</h3>
-              <p class="card-summary">A clean one-thread-per-output baseline with no reuse tricks.</p>
-              <p class="why-it-matters">Why it matters: the tiled GEMM story only works if the baseline is clear.</p>
-              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/042_naive-matrix-multiply">View on GitHub</a>
             </article>
             <article class="example-card">
               <div class="card-top"><span class="example-id">043</span><span class="badge">Tiling</span></div>
               <h3>Tiled Matrix Multiply</h3>
               <p class="card-summary">Shared-memory tiles turn repeated global loads into reusable local data.</p>
-              <p class="why-it-matters">Why it matters: one of the strongest examples of reuse-driven optimization.</p>
+              <p class="why-it-matters">Why it matters: a classic example of reuse changing performance shape.</p>
               <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/043_tiled-matrix-multiply">View on GitHub</a>
             </article>
             <article class="example-card">
-              <div class="card-top"><span class="example-id">049</span><span class="badge">Imaging</span></div>
-              <h3>Gaussian Blur</h3>
-              <p class="card-summary">A useful stencil-style image kernel with 2D mapping and neighborhood access.</p>
-              <p class="why-it-matters">Why it matters: broadens the study path beyond textbook dense kernels.</p>
-              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/049_gaussian-blur">View on GitHub</a>
+              <div class="card-top"><span class="example-id">111</span><span class="badge">Warp</span></div>
+              <h3>Warp Shuffle Reduction</h3>
+              <p class="card-summary">Registers and warp shuffles replace part of the shared-memory tree.</p>
+              <p class="why-it-matters">Why it matters: a strong bridge from block-level to warp-level thinking.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/111_warp-shuffle-reduction">View on GitHub</a>
             </article>
             <article class="example-card">
-              <div class="card-top"><span class="example-id">052</span><span class="badge">Sparse</span></div>
-              <h3>Sparse Matrix-Vector Multiply CSR</h3>
-              <p class="card-summary">Sparse linear algebra with irregular access and real structural constraints.</p>
-              <p class="why-it-matters">Why it matters: a bridge from core CUDA patterns to scientific workloads.</p>
-              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/052_sparse-matrix-vector-multiply-csr">View on GitHub</a>
+              <div class="card-top"><span class="example-id">116</span><span class="badge">Memory Study</span></div>
+              <h3>Bank Conflict Study</h3>
+              <p class="card-summary">Compares a conflict-prone transpose tile with a padded shared-memory layout.</p>
+              <p class="why-it-matters">Why it matters: the cost of the wrong layout is easy to reason about.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/116_bank-conflict-study">View on GitHub</a>
             </article>
             <article class="example-card">
-              <div class="card-top"><span class="example-id">080</span><span class="badge">Simulation</span></div>
-              <h3>N-Body Tiled</h3>
-              <p class="card-summary">Tile-based reuse applied to force computation rather than matrix algebra.</p>
-              <p class="why-it-matters">Why it matters: shows that shared-memory patterns generalize across domains.</p>
-              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/080_n-body-tiled">View on GitHub</a>
+              <div class="card-top"><span class="example-id">120</span><span class="badge">Stencil</span></div>
+              <h3>Stencil with Halo Tiling</h3>
+              <p class="card-summary">A tiled 2D stencil that stages center data and halo cells cooperatively.</p>
+              <p class="why-it-matters">Why it matters: shows shared-memory staging outside matrix multiply.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/120_stencil-with-halo-tiling">View on GitHub</a>
             </article>
             <article class="example-card">
-              <div class="card-top"><span class="example-id">098</span><span class="badge">ML</span></div>
-              <h3>Neural Network Forward Pass</h3>
-              <p class="card-summary">A higher-level workload that connects study kernels to inference-style computation.</p>
-              <p class="why-it-matters">Why it matters: helps the repo read as a study library, not only a textbook exercise set.</p>
-              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/098_neural-network-forward-pass">View on GitHub</a>
+              <div class="card-top"><span class="example-id">131</span><span class="badge">Imaging</span></div>
+              <h3>Sobel Filter Optimized</h3>
+              <p class="card-summary">A tiled edge detector with halo loads and explicit neighborhood reuse.</p>
+              <p class="why-it-matters">Why it matters: a practical imaging kernel with readable optimization structure.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/131_sobel-filter-optimized">View on GitHub</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">141</span><span class="badge">ML</span></div>
+              <h3>LayerNorm Forward</h3>
+              <p class="card-summary">A row-wise normalization kernel built from shared reduction primitives.</p>
+              <p class="why-it-matters">Why it matters: familiar CUDA patterns reappear inside modern ML code.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/141_layernorm-forward">View on GitHub</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">142</span><span class="badge">ML</span></div>
+              <h3>Softmax Stable</h3>
+              <p class="card-summary">Stable row-wise softmax with a max reduction followed by denominator reduction.</p>
+              <p class="why-it-matters">Why it matters: numerical stability and synchronization both matter here.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/142_softmax-stable">View on GitHub</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">150</span><span class="badge">Pipeline</span></div>
+              <h3>Mini Inference Pipeline</h3>
+              <p class="card-summary">Two small dense layers, ReLU, and softmax composed into one readable forward pass.</p>
+              <p class="why-it-matters">Why it matters: the repo now ends with a compact end-to-end kernel sequence.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/150_mini-inference-pipeline">View on GitHub</a>
             </article>
           </div>
         </section>
 
-        <section class="section-shell section-shell-plain" id="starting-points">
+        <section class="section-shell section-shell-plain" id="advanced">
+          <div class="section-heading">
+            <p class="eyebrow">Advanced Track</p>
+            <h2>Five focused groups in `101-150`</h2>
+          </div>
+          <div class="advanced-track-grid">
+            <article class="focus-card">
+              <h3>Warp / atomics / scan</h3>
+              <p>`101-110` covers segmented primitives, warp aggregation, and filtering-style kernels.</p>
+              <strong>3 implemented / 10 total</strong>
+            </article>
+            <article class="focus-card">
+              <h3>Memory / tiling / optimization</h3>
+              <p>`111-120` studies warp shuffle, bank conflicts, coalescing, transpose ladders, and halo tiles.</p>
+              <strong>5 implemented / 10 total</strong>
+            </article>
+            <article class="focus-card">
+              <h3>Sparse / graph / irregular</h3>
+              <p>`121-130` is reserved for sparse formats, graph frontiers, hashing, and irregular access patterns.</p>
+              <strong>0 implemented / 10 total</strong>
+            </article>
+            <article class="focus-card">
+              <h3>Imaging / simulation</h3>
+              <p>`131-140` extends the core image and simulation path with more optimization-heavy studies.</p>
+              <strong>2 implemented / 10 total</strong>
+            </article>
+            <article class="focus-card">
+              <h3>ML / practical kernels</h3>
+              <p>`141-150` turns core reduction and tiling ideas into normalization, softmax, pricing, and inference studies.</p>
+              <strong>4 implemented / 10 total</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-shell section-shell-tinted" id="starting-points">
           <div class="section-heading">
             <p class="eyebrow">Best Starting Points</p>
-            <h2>Three compact ways into the repo</h2>
+            <h2>Three useful entry routes</h2>
           </div>
           <div class="start-grid">
             <article class="focus-card">
@@ -269,70 +318,77 @@
               <ul class="focus-list">
                 <li><strong>002</strong> Vector Addition</li>
                 <li><strong>020</strong> Matrix Transpose with Shared Memory</li>
-                <li><strong>021</strong> Dot Product</li>
                 <li><strong>023</strong> Sum Reduction</li>
                 <li><strong>043</strong> Tiled Matrix Multiply</li>
+                <li><strong>111</strong> Warp Shuffle Reduction</li>
               </ul>
             </article>
             <article class="focus-card">
               <h3>Best for optimization study</h3>
               <ul class="focus-list">
-                <li><strong>020</strong> Transpose with Shared Memory</li>
-                <li><strong>026/027</strong> Naive vs work-efficient scan</li>
-                <li><strong>028/029</strong> Global atomics vs privatization</li>
-                <li><strong>041</strong> Matrix-Vector Multiply</li>
-                <li><strong>042/043</strong> Naive vs tiled matrix multiply</li>
+                <li><strong>026 / 027</strong> Naive vs work-efficient scan</li>
+                <li><strong>028 / 029</strong> Global atomics vs privatization</li>
+                <li><strong>042 / 043</strong> Naive vs tiled matrix multiply</li>
+                <li><strong>116</strong> Bank Conflict Study</li>
+                <li><strong>117</strong> Coalescing Study</li>
               </ul>
             </article>
             <article class="focus-card">
               <h3>Best for interview prep / CUDA patterns</h3>
               <ul class="focus-list">
-                <li><strong>002</strong> Launch and indexing basics</li>
                 <li><strong>023</strong> Reduction and synchronization</li>
                 <li><strong>027</strong> Scan tree reasoning</li>
                 <li><strong>029</strong> Privatization and contention</li>
-                <li><strong>030</strong> Compaction with scan vs atomics</li>
+                <li><strong>111</strong> Warp-synchronous reduction</li>
+                <li><strong>142</strong> Stable softmax</li>
               </ul>
             </article>
           </div>
         </section>
 
-        <section class="section-shell section-shell-tinted" id="maturity">
+        <section class="section-shell section-shell-featured" id="maturity">
           <div class="section-heading">
             <p class="eyebrow">Repo Maturity</p>
-            <h2>Progress by study area</h2>
+            <h2>Progress by track and study area</h2>
+          </div>
+          <div class="maturity-summary">
+            <div><strong>150</strong><span>total examples</span></div>
+            <div><strong>110</strong><span>implemented</span></div>
+            <div><strong>40</strong><span>scaffolded</span></div>
           </div>
           <div class="maturity-board">
             <article class="maturity-card">
-              <div class="maturity-head"><h3>Foundations</h3><strong>20 / 20</strong></div>
-              <p>Entry path is complete, including the early shared-memory transpose pair.</p>
-              <div class="progress-bar progress-bar-full"><span style="width: 100%"></span></div>
+              <div class="maturity-head"><h3>Core PMPP-style track</h3><strong>96 / 100</strong></div>
+              <p>The core path is nearly complete. The remaining scaffolds are the factorization-heavy `057-060` block.</p>
+              <div class="progress-bar"><span style="width: 96%"></span></div>
             </article>
             <article class="maturity-card">
-              <div class="maturity-head"><h3>Parallel Patterns</h3><strong>20 / 20</strong></div>
-              <p>Reduction, scan, histogram, compaction, sorting, and search examples are runnable.</p>
-              <div class="progress-bar progress-bar-full"><span style="width: 100%"></span></div>
-            </article>
-            <article class="maturity-card">
-              <div class="maturity-head"><h3>Linear Algebra</h3><strong>16 / 20</strong></div>
-              <p>Dense and sparse kernels are implemented; the factorization-heavy four remain scaffolded.</p>
-              <div class="progress-bar"><span style="width: 80%"></span></div>
-            </article>
-            <article class="maturity-card">
-              <div class="maturity-head"><h3>Image / Signal</h3><strong>15 / 15</strong></div>
-              <p>Image and signal-processing range is fully runnable, from resize to filtering and encoding.</p>
-              <div class="progress-bar progress-bar-full"><span style="width: 100%"></span></div>
-            </article>
-            <article class="maturity-card">
-              <div class="maturity-head"><h3>Advanced Workloads</h3><strong>25 / 25</strong></div>
-              <p>Simulation, graph, clustering, and neural-network examples are present as runnable study kernels.</p>
-              <div class="progress-bar progress-bar-full"><span style="width: 100%"></span></div>
+              <div class="maturity-head"><h3>Advanced studies</h3><strong>14 / 50</strong></div>
+              <p>The advanced track now has its first implemented subset, with the rest scaffolded so the curriculum is visible before every topic is filled in.</p>
+              <div class="progress-bar"><span style="width: 28%"></span></div>
             </article>
           </div>
-          <div class="maturity-note">
-            <div><strong>96</strong><span>implemented examples</span></div>
-            <div><strong>4</strong><span>template examples</span></div>
-            <div><strong>Shared helpers</strong><span>validation, reporting, and benchmark support</span></div>
+          <div class="maturity-board maturity-board-groups">
+            <article class="maturity-card">
+              <div class="maturity-head"><h3>Warp / atomics / scan</h3><strong>3 / 10</strong></div>
+              <div class="progress-bar"><span style="width: 30%"></span></div>
+            </article>
+            <article class="maturity-card">
+              <div class="maturity-head"><h3>Memory / tiling / optimization</h3><strong>5 / 10</strong></div>
+              <div class="progress-bar"><span style="width: 50%"></span></div>
+            </article>
+            <article class="maturity-card">
+              <div class="maturity-head"><h3>Sparse / graph / irregular</h3><strong>0 / 10</strong></div>
+              <div class="progress-bar"><span style="width: 0%"></span></div>
+            </article>
+            <article class="maturity-card">
+              <div class="maturity-head"><h3>Imaging / simulation</h3><strong>2 / 10</strong></div>
+              <div class="progress-bar"><span style="width: 20%"></span></div>
+            </article>
+            <article class="maturity-card">
+              <div class="maturity-head"><h3>ML / practical kernels</h3><strong>4 / 10</strong></div>
+              <div class="progress-bar"><span style="width: 40%"></span></div>
+            </article>
           </div>
         </section>
 
@@ -360,7 +416,7 @@
             <article class="workflow-step">
               <span>4</span>
               <h3>Compare Versions</h3>
-              <p>Study what the improved version changes in memory movement, reuse, or contention.</p>
+              <p>Study what the stronger version changes in reuse, memory traffic, divergence, or contention.</p>
             </article>
             <article class="workflow-step">
               <span>5</span>
@@ -374,11 +430,12 @@
       <footer class="site-footer">
         <div>
           <strong>PMPP CUDA Study</strong>
-          <p>A public-facing front page for a structured CUDA study repository.</p>
+          <p>150 CUDA examples organized as a core PMPP-style track plus advanced studies.</p>
         </div>
         <div class="footer-links">
           <a href="#top">Top</a>
           <a href="#featured">Examples</a>
+          <a href="#advanced">Advanced Track</a>
           <a href="#study">Study Workflow</a>
           <a href="https://github.com/manishklach/pmpp-cuda-study">GitHub Repo</a>
         </div>

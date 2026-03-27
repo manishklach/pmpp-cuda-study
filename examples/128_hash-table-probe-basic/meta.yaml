@@ -1,0 +1,15 @@
+number: 128
+slug: hash-table-probe-basic
+title: Hash Table Probe Basic
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Study a simple GPU hash-table probe loop.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

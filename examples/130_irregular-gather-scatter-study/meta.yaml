@@ -1,0 +1,15 @@
+number: 130
+slug: irregular-gather-scatter-study
+title: Irregular Gather Scatter Study
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Compare different gather and scatter patterns on irregular indices.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

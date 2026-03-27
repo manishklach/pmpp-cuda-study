@@ -1,0 +1,12 @@
+number: 137
+slug: heat-diffusion-tiled-2d
+title: Heat Diffusion Tiled 2D
+module: advanced-studies
+category: imaging-simulation
+difficulty: advanced
+status: fully_mature
+maturity_level: 6
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-5

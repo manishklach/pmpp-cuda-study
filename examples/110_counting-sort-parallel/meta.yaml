@@ -1,0 +1,15 @@
+number: 110
+slug: counting-sort-parallel
+title: Counting Sort Parallel
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Use histogramming plus prefix sums to place keys into sorted order.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

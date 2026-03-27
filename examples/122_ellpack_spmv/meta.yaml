@@ -1,0 +1,15 @@
+number: 122
+slug: ellpack_spmv
+title: Ellpack_SpMV
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Study ELLPACK as a regularized sparse matrix-vector format.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

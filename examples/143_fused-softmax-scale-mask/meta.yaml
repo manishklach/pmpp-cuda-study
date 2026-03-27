@@ -1,0 +1,15 @@
+number: 143
+slug: fused-softmax-scale-mask
+title: Fused Softmax Scale Mask
+module: advanced-studies
+category: ml-practical-kernels
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Study a masked and scaled softmax pattern similar to attention preprocessing.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

@@ -1,0 +1,15 @@
+number: 109
+slug: select-topk-basic
+title: Select Topk Basic
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Build a simple top-k selection study kernel before heap or block-select optimizations.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

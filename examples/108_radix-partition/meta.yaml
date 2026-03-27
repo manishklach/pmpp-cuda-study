@@ -1,0 +1,15 @@
+number: 108
+slug: radix-partition
+title: Radix Partition
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Partition keys by bit range as a building block for radix sort.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

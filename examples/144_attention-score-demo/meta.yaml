@@ -1,0 +1,15 @@
+number: 144
+slug: attention-score-demo
+title: Attention Score Demo
+module: advanced-studies
+category: ml-practical-kernels
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Compute small attention score matrices from query and key blocks.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

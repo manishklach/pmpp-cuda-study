@@ -1,0 +1,15 @@
+number: 119
+slug: transpose-optimization-ladder
+title: Transpose Optimization Ladder
+module: advanced-studies
+category: memory-tiling-optimization
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Build a sequence of transpose kernels from naive to padded shared-memory versions.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

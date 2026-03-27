@@ -1,0 +1,15 @@
+number: 135
+slug: bitonic-sort-visual-study
+title: Bitonic Sort Visual Study
+module: advanced-studies
+category: imaging-simulation
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Study the compare-exchange structure of bitonic sort.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

@@ -1,0 +1,15 @@
+number: 115
+slug: register-tiling-gemm
+title: Register Tiling Gemm
+module: advanced-studies
+category: memory-tiling-optimization
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Study a GEMM that uses registers to accumulate multiple outputs per thread.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

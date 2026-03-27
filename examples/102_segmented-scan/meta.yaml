@@ -1,0 +1,12 @@
+number: 102
+slug: segmented-scan
+title: Segmented Scan
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: fully_mature
+maturity_level: 6
+
+validation:
+  type: cpu_reference
+  tolerance: 0

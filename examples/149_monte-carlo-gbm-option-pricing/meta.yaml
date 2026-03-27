@@ -1,0 +1,12 @@
+number: 149
+slug: monte-carlo-gbm-option-pricing
+title: Monte Carlo GBM Option Pricing
+module: advanced-studies
+category: ml-practical-kernels
+difficulty: advanced
+status: fully_mature
+maturity_level: 6
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-3

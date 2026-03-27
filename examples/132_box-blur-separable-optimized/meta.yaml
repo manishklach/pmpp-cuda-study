@@ -1,0 +1,15 @@
+number: 132
+slug: box-blur-separable-optimized
+title: Box Blur Separable Optimized
+module: advanced-studies
+category: imaging-simulation
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Show a separable box blur with an optimized two-pass structure.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

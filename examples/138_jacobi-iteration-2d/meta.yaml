@@ -1,0 +1,15 @@
+number: 138
+slug: jacobi-iteration-2d
+title: Jacobi Iteration 2D
+module: advanced-studies
+category: imaging-simulation
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Run a 2D Jacobi iteration over a structured grid.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

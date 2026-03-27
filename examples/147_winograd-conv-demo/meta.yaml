@@ -1,0 +1,15 @@
+number: 147
+slug: winograd-conv-demo
+title: Winograd Conv Demo
+module: advanced-studies
+category: ml-practical-kernels
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Show the structure of a tiny Winograd-style convolution transform.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

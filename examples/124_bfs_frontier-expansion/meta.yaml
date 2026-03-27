@@ -1,0 +1,15 @@
+number: 124
+slug: bfs_frontier-expansion
+title: Bfs_Frontier Expansion
+module: advanced-studies
+category: sparse-graph-irregular
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Expand a graph frontier in parallel as a basic BFS building block.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

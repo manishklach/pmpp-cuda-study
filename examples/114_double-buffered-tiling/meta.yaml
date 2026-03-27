@@ -1,0 +1,15 @@
+number: 114
+slug: double-buffered-tiling
+title: Double Buffered Tiling
+module: advanced-studies
+category: memory-tiling-optimization
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Show how alternating tile buffers can overlap staging and compute.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

@@ -1,0 +1,15 @@
+number: 107
+slug: stream-compaction-prefix-sum-fused
+title: Stream Compaction Prefix Sum Fused
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Study a compaction pipeline that fuses predicate evaluation and prefix-sum style indexing.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

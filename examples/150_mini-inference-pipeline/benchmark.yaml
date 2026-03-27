@@ -1,0 +1,4 @@
+mode: benchmarkable
+size: 4096
+warmup: 5
+iters: 20

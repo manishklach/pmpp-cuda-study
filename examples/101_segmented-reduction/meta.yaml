@@ -1,0 +1,12 @@
+number: 101
+slug: segmented-reduction
+title: Segmented Reduction
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: fully_mature
+maturity_level: 6
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-5

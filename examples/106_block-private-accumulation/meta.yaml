@@ -1,0 +1,15 @@
+number: 106
+slug: block-private-accumulation
+title: Block Private Accumulation
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Accumulate per-block state privately before flushing global results.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

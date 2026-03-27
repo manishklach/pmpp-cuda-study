@@ -1,0 +1,15 @@
+number: 145
+slug: im2col-convolution
+title: Im2Col Convolution
+module: advanced-studies
+category: ml-practical-kernels
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Lower image patches into columns as a convolution study path.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

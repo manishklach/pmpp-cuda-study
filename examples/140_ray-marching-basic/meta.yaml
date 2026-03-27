@@ -1,0 +1,15 @@
+number: 140
+slug: ray-marching-basic
+title: Ray Marching Basic
+module: advanced-studies
+category: imaging-simulation
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  March rays through a simple signed-distance scene.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4

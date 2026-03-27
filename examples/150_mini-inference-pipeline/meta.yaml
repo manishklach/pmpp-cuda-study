@@ -1,0 +1,12 @@
+number: 150
+slug: mini-inference-pipeline
+title: Mini Inference Pipeline
+module: advanced-studies
+category: ml-practical-kernels
+difficulty: advanced
+status: fully_mature
+maturity_level: 6
+
+validation:
+  type: cpu_reference
+  tolerance: 1.0e-4

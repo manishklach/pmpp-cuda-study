@@ -1,0 +1,12 @@
+number: 105
+slug: warp-aggregated-atomics
+title: Warp Aggregated Atomics
+module: advanced-studies
+category: warp-atomics-scan
+difficulty: advanced
+status: fully_mature
+maturity_level: 6
+
+validation:
+  type: cpu_reference
+  tolerance: 0

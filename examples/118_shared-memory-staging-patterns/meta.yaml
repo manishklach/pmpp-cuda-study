@@ -1,0 +1,15 @@
+number: 118
+slug: shared-memory-staging-patterns
+title: Shared Memory Staging Patterns
+module: advanced-studies
+category: memory-tiling-optimization
+difficulty: advanced
+status: scaffolded
+maturity_level: 2
+
+description: >
+  Catalog a few common staging patterns for loading data into shared memory.
+
+validation:
+  type: scaffold
+  tolerance: 1.0e-4
