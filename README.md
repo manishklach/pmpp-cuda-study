@@ -2,6 +2,8 @@
 
 Structured CUDA study repository with 100 numbered examples arranged as a PMPP-style progression from basic kernels to larger parallel patterns, linear algebra, image processing, simulation, and graph / ML workloads.
 
+Project site: [manishklach.github.io/pmpp-cuda-study](https://manishklach.github.io/pmpp-cuda-study/)
+
 ## Repo Identity
 
 This repo exists to make CUDA study concrete. Each example is meant to be small enough to read in one sitting, but complete enough to compile, run, validate against a CPU reference, and compare with a nearby baseline or optimized variant where that comparison is educational.

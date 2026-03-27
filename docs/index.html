@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PMPP CUDA Study</title>
+    <meta
+      name="description"
+      content="A structured CUDA study repository with 100 PMPP-style examples from beginner kernels to advanced parallel workloads."
+    />
+    <link rel="stylesheet" href="./site.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-text">PMPP CUDA Study</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="#why">Why</a>
+          <a href="#path">Learning Path</a>
+          <a href="#featured">Featured</a>
+          <a href="#core">Trusted Core</a>
+          <a href="#maturity">Maturity</a>
+          <a href="#study">How To Study</a>
+        </nav>
+      </header>
+
+      <main id="top">
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">CUDA Study Library</p>
+            <h1>PMPP CUDA Study</h1>
+            <p class="hero-text">
+              A structured CUDA study repository with 100 PMPP-style examples from beginner
+              kernels to advanced parallel workloads.
+            </p>
+            <p class="hero-subtext">
+              Built as a serious study path: runnable examples, CPU reference checks, clear kernel
+              mapping notes, and side-by-side baseline versus optimized patterns where the
+              comparison matters.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="https://github.com/manishklach/pmpp-cuda-study"
+                >View GitHub Repo</a
+              >
+              <a class="button button-secondary" href="#featured">Explore Featured Examples</a>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-hidden="true">
+            <div class="diagram-card">
+              <div class="diagram-header">
+                <span>Thread block</span>
+                <span>Shared tile</span>
+              </div>
+              <div class="thread-grid">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <div class="memory-lanes">
+                <div>
+                  <span class="lane-label">Global memory</span>
+                  <span class="lane"></span>
+                </div>
+                <div>
+                  <span class="lane-label">Shared memory</span>
+                  <span class="lane lane-shared"></span>
+                </div>
+                <div>
+                  <span class="lane-label">Output tile</span>
+                  <span class="lane lane-output"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="why">
+          <div class="section-heading">
+            <p class="eyebrow">Why This Repo</p>
+            <h2>Study CUDA systematically, not as disconnected snippets</h2>
+          </div>
+          <div class="two-column">
+            <p>
+              The repo is organized as a progression: simple kernels first, then reductions, scans,
+              histograms, dense linear algebra, imaging, simulation, and graph or ML workloads.
+              Examples are intentionally small enough to inspect directly.
+            </p>
+            <p>
+              The focus is technical study value: correctness before timing, explicit thread and
+              block mapping, memory-behavior notes, synchronization points, and comparisons between
+              baseline and improved kernels where the optimization story is worth learning.
+            </p>
+          </div>
+        </section>
+
+        <section class="section" id="path">
+          <div class="section-heading">
+            <p class="eyebrow">Learning Path</p>
+            <h2>One repository, five study stages</h2>
+          </div>
+          <div class="path-grid">
+            <article class="path-card">
+              <span class="path-range">001-020</span>
+              <h3>Foundations</h3>
+              <p>Kernel launches, indexing, array transforms, stencils, and early shared memory.</p>
+            </article>
+            <article class="path-card">
+              <span class="path-range">021-040</span>
+              <h3>Parallel Patterns</h3>
+              <p>Dot product, reduction, scan, histogram, compaction, gather, scatter, and search.</p>
+            </article>
+            <article class="path-card">
+              <span class="path-range">041-060</span>
+              <h3>Linear Algebra</h3>
+              <p>Matrix-vector multiply, naive versus tiled GEMM, convolution, sparse kernels, and iterative methods.</p>
+            </article>
+            <article class="path-card">
+              <span class="path-range">061-075</span>
+              <h3>Image / Signal</h3>
+              <p>Image resize, filtering, edge detection, integral images, audio filtering, and encoding primitives.</p>
+            </article>
+            <article class="path-card">
+              <span class="path-range">076-100</span>
+              <h3>Advanced Workloads</h3>
+              <p>Simulation, rendering, graph kernels, clustering, and neural-network forward paths.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="featured">
+          <div class="section-heading">
+            <p class="eyebrow">Featured Examples</p>
+            <h2>Strong examples to read first</h2>
+          </div>
+          <div class="cards-grid">
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">002</span><span class="badge">Foundations</span></div>
+              <h3>Vector Addition</h3>
+              <p>The canonical CUDA starting point: host-device workflow, indexing, validation, and clean baseline structure.</p>
+              <p class="why-it-matters">Why it matters: it makes the rest of the repo easier to read.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/002_vector-addition">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">020</span><span class="badge">Shared Memory</span></div>
+              <h3>Matrix Transpose with Shared Memory</h3>
+              <p>A compact example of cooperative tiling, coalescing, and bank-conflict-aware transpose structure.</p>
+              <p class="why-it-matters">Why it matters: early proof that memory layout often dominates kernel quality.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/020_matrix-transpose-with-shared-memory">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">023</span><span class="badge">Reduction</span></div>
+              <h3>Sum Reduction</h3>
+              <p>Interleaved and sequential-addressing reductions side by side, with comments around divergence and synchronization.</p>
+              <p class="why-it-matters">Why it matters: reduction is one of the core PMPP patterns.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/023_sum-reduction">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">028</span><span class="badge">Atomics</span></div>
+              <h3>Histogram with Global Atomics</h3>
+              <p>A deliberately contention-heavy baseline for irregular updates into a small set of bins.</p>
+              <p class="why-it-matters">Why it matters: it shows where simple correctness starts to hit performance limits.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/028_histogram-global-atomics">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">029</span><span class="badge">Privatization</span></div>
+              <h3>Histogram with Shared Memory</h3>
+              <p>Per-block privatization moves most atomic traffic off the global path before flushing final bin totals.</p>
+              <p class="why-it-matters">Why it matters: it makes contention tradeoffs concrete.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/029_histogram-shared-memory">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">042</span><span class="badge">Linear Algebra</span></div>
+              <h3>Naive Matrix Multiply</h3>
+              <p>The clear global-memory baseline: one thread per output element, no caching, easy indexing to inspect.</p>
+              <p class="why-it-matters">Why it matters: every tiled GEMM story needs a baseline worth comparing against.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/042_naive-matrix-multiply">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">043</span><span class="badge">Tiling</span></div>
+              <h3>Tiled Matrix Multiply</h3>
+              <p>Shared-memory tiles reduce repeated global loads and make data reuse visible at block scope.</p>
+              <p class="why-it-matters">Why it matters: this is one of the clearest CUDA optimization examples in the repo.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/043_tiled-matrix-multiply">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">049</span><span class="badge">Imaging</span></div>
+              <h3>Gaussian Blur</h3>
+              <p>A useful imaging kernel for studying stencil neighborhoods, filtering cost, and 2D mapping.</p>
+              <p class="why-it-matters">Why it matters: it broadens the repo beyond textbook linear algebra.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/049_gaussian-blur">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">052</span><span class="badge">Sparse</span></div>
+              <h3>Sparse Matrix-Vector Multiply CSR</h3>
+              <p>A sparse linear-algebra bridge example where irregular access patterns matter as much as arithmetic.</p>
+              <p class="why-it-matters">Why it matters: it connects CUDA fundamentals to real scientific-computing structures.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/052_sparse-matrix-vector-multiply-csr">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">080</span><span class="badge">Simulation</span></div>
+              <h3>N-Body Tiled</h3>
+              <p>A simulation-oriented tiling example that reuses body data across force computations.</p>
+              <p class="why-it-matters">Why it matters: it shows shared-memory reuse outside matrix multiplication.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/080_n-body-tiled">View example</a>
+            </article>
+            <article class="example-card">
+              <div class="card-top"><span class="example-id">098</span><span class="badge">ML</span></div>
+              <h3>Neural Network Forward Pass</h3>
+              <p>A higher-level workload that connects study kernels to inference-style computation patterns.</p>
+              <p class="why-it-matters">Why it matters: it helps readers see how classic CUDA ideas show up in modern workloads.</p>
+              <a href="https://github.com/manishklach/pmpp-cuda-study/tree/main/examples/098_neural-network-forward-pass">View example</a>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="core">
+          <div class="section-heading">
+            <p class="eyebrow">Trusted Core</p>
+            <h2>Best starting points for a first pass through the repo</h2>
+          </div>
+          <div class="core-list">
+            <div class="core-item">
+              <span>002</span>
+              <div>
+                <h3>Vector Addition</h3>
+                <p>Start here for clean host-device workflow and minimal algorithmic noise.</p>
+              </div>
+            </div>
+            <div class="core-item">
+              <span>023</span>
+              <div>
+                <h3>Sum Reduction</h3>
+                <p>Read this early if you want the shared-memory and synchronization foundations.</p>
+              </div>
+            </div>
+            <div class="core-item">
+              <span>027</span>
+              <div>
+                <h3>Work-Efficient Scan</h3>
+                <p>Good next step after reduction if you want tree-based coordination patterns.</p>
+              </div>
+            </div>
+            <div class="core-item">
+              <span>029</span>
+              <div>
+                <h3>Histogram with Shared Memory</h3>
+                <p>Useful for learning privatization and contention-aware thinking.</p>
+              </div>
+            </div>
+            <div class="core-item">
+              <span>043</span>
+              <div>
+                <h3>Tiled Matrix Multiply</h3>
+                <p>The strongest single example for reuse, tiling, and cooperative loading.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="maturity">
+          <div class="section-heading">
+            <p class="eyebrow">Repo Maturity</p>
+            <h2>Compact status, not a wall of project management</h2>
+          </div>
+          <div class="maturity-grid">
+            <article class="metric-card">
+              <span class="metric-value">96</span>
+              <span class="metric-label">Implemented examples</span>
+              <p>Runnable CUDA examples with code, README guidance, and correctness paths.</p>
+            </article>
+            <article class="metric-card">
+              <span class="metric-value">4</span>
+              <span class="metric-label">Template examples</span>
+              <p>Numerically denser topics intentionally left scaffolded instead of overstated.</p>
+            </article>
+            <article class="metric-card">
+              <span class="metric-value">Shared</span>
+              <span class="metric-label">Validation and benchmark helpers</span>
+              <p>Lightweight repo-wide support for PASS or FAIL checks, timing, and reporting.</p>
+            </article>
+          </div>
+          <div class="progress-panel">
+            <div class="progress-row">
+              <span>Implemented</span>
+              <div class="progress-bar"><span style="width: 96%"></span></div>
+              <strong>96%</strong>
+            </div>
+            <div class="progress-row">
+              <span>Template</span>
+              <div class="progress-bar progress-bar-muted"><span style="width: 4%"></span></div>
+              <strong>4%</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="study">
+          <div class="section-heading">
+            <p class="eyebrow">How To Study This Repo</p>
+            <h2>A practical way to use the examples</h2>
+          </div>
+          <ol class="study-list">
+            <li>Run the baseline example first and confirm the CPU reference path is clear.</li>
+            <li>Check the output and PASS or FAIL result before looking at benchmark numbers.</li>
+            <li>Inspect thread and block ownership, then note where memory is read, reused, and synchronized.</li>
+            <li>Compare the improved version against the baseline and ask what changed in data movement or contention.</li>
+            <li>Use benchmark mode only after you understand why a kernel should be faster.</li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p>PMPP CUDA Study is a public CUDA study library built for careful reading, correctness, and grounded optimization.</p>
+        <a href="https://github.com/manishklach/pmpp-cuda-study">github.com/manishklach/pmpp-cuda-study</a>
+      </footer>
+    </div>
+
+    <script src="./site.js"></script>
+  </body>
+</html>
